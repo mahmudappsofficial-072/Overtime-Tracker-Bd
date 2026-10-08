@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "User": {
+      "path": "users/{userId}",
+      "fields": {
+        "userName": { "type": "string" },
+        "companyName": { "type": "string" },
+        "designation": { "type": "string" },
+        "workerId": { "type": "string" },
+        "grade": { "type": "string" },
+        "isCustomSalary": { "type": "boolean" },
+        "basicSalary": { "type": "number" },
+        "houseRent": { "type": "number" },
+        "medicalAllowance": { "type": "number" },
+        "conveyanceAllowance": { "type": "number" },
+        "foodAllowance": { "type": "number" },
+        "attendanceBonus": { "type": "number" },
+        "nightBillRate": { "type": "number" },
+        "tiffinBillRate": { "type": "number" },
+        "customOtRate": { "type": "number" },
+        "monthlyOtTargetHours": { "type": "number" },
+        "language": { "type": "string" },
+        "supportWhatsapp": { "type": "string" },
+        "lastSyncTime": { "type": "number" }
+      }
+    },
+    "OvertimeRecord": {
+      "path": "users/{userId}/overtime_records/{recordId}",
+      "fields": {
+        "id": { "type": "number" },
+        "date": { "type": "string" },
+        "yearMonth": { "type": "string" },
+        "otHours": { "type": "number" },
+        "hasNightBill": { "type": "boolean" },
+        "hasTiffinBill": { "type": "boolean" },
+        "isHoliday": { "type": "boolean" },
+        "shiftType": { "type": "string" },
+        "note": { "type": "string" },
+        "hourlyRateSnapshot": { "type": "number" },
+        "calculatedAmount": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      }
+    },
+    "PieceRateRecord": {
+      "path": "users/{userId}/piece_rate_records/{recordId}",
+      "fields": {
+        "id": { "type": "number" },
+        "date": { "type": "string" },
+        "yearMonth": { "type": "string" },
+        "itemName": { "type": "string" },
+        "pieceCount": { "type": "number" },
+        "ratePerPiece": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      }
+    }
+  }
+}

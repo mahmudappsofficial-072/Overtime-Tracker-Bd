@@ -1,0 +1,6 @@
+{
+  "name": "Overtime Tracker BD",
+  "description": "বাংলাদেশের শ্রম আইন অনুযায়ী গার্মেন্টস ও ফ্যাক্টরি কর্মীদের ওভারটাইম, বেতন, পিস রেট এবং ক্লাউড ব্যাকআপ হিসাব অ্যাপ।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
