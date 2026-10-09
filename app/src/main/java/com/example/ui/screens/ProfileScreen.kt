@@ -741,7 +741,7 @@ fun ProfileScreen(
             }
         }
 
-        // WhatsApp Help & Privacy Card
+        // Help & Privacy Card
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -755,19 +755,15 @@ fun ProfileScreen(
                 ) {
                     Text("সহায়তা ও গোপনীয়তা (Help & Privacy)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
 
-                    // WhatsApp Help Button
+                    // WhatsApp Direct Help Button
                     OutlinedButton(
                         onClick = {
-                            val targetPhone = if (whatsappNumber.isNotBlank()) whatsappNumber else "8801700000000"
-                            val cleanNumber = targetPhone.replace("+", "").replace("-", "").trim()
-                            val msg = "আসসালামু আলাইকুম ভাই, ওভারটাইম বিডি অ্যাপ নিয়ে সাহায্য প্রয়োজন।"
+                            val whatsappUrl = "https://wa.me/8801988697470"
                             try {
-                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    data = Uri.parse("https://wa.me/$cleanNumber?text=${Uri.encode(msg)}")
-                                }
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(whatsappUrl))
                                 context.startActivity(intent)
                             } catch (e: Exception) {
-                                Toast.makeText(context, "হোয়াটসঅ্যাপ পাওয়া যায়নি। নম্বর: $cleanNumber", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "হোয়াটসঅ্যাপ ওপেন করা যায়নি। লিংক: $whatsappUrl", Toast.LENGTH_LONG).show()
                             }
                         },
                         modifier = Modifier.fillMaxWidth().testTag("whatsapp_help_button")
@@ -779,7 +775,16 @@ fun ProfileScreen(
 
                     // Privacy Policy Button
                     TextButton(
-                        onClick = { showPrivacyDialog = true },
+                        onClick = {
+                            val privacyUrl = "https://mahmudappsofficial-072.github.io/overtime-tracker-privacy-policy/"
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(privacyUrl))
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                // Fallback to built-in dialog if browser cannot be launched
+                                showPrivacyDialog = true
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().testTag("privacy_policy_button")
                     ) {
                         Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -902,16 +907,6 @@ fun ProfileScreen(
                             }
                         }
                     }
-
-                    // Developer / Help WhatsApp config
-                    OutlinedTextField(
-                        value = whatsappNumber,
-                        onValueChange = { whatsappNumber = it },
-                        label = { Text("হেল্পলাইন হোয়াটসঅ্যাপ নম্বর") },
-                        modifier = Modifier.fillMaxWidth().testTag("whatsapp_input"),
-                        singleLine = true,
-                        supportingText = { Text("ব্যবহারকারীরা সহায়তার জন্য এই নম্বরে সরাসরি চ্যাট করতে পারবেন") }
-                    )
                 }
             },
             confirmButton = {

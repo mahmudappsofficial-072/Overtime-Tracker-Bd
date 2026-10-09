@@ -42,6 +42,7 @@ fun PieceRateScreen(
 
     val totalPieces = pieceRecords.sumOf { it.pieceCount }
     val totalPieceAmount = pieceRecords.sumOf { it.totalAmount }
+    var itemToDelete by remember { mutableStateOf<PieceRateRecord?>(null) }
 
     Scaffold(
         floatingActionButton = {
@@ -206,7 +207,7 @@ fun PieceRateScreen(
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.primary
                                         )
-                                        IconButton(onClick = { onDeletePieceClick(item.id) }) {
+                                        IconButton(onClick = { itemToDelete = item }) {
                                             Icon(
                                                 Icons.Default.DeleteOutline,
                                                 contentDescription = "Delete",
@@ -446,6 +447,35 @@ fun PieceRateScreen(
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog for Piece Rate Record
+    if (itemToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { itemToDelete = null },
+            title = { Text("পিস রেট রেকর্ড মুছবেন?") },
+            text = {
+                Text(
+                    text = "আপনি কি নিশ্চিত যে '${itemToDelete?.itemName}' (${itemToDelete?.date}) এর রেকর্ডটি মুছে ফেলতে চান?"
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        itemToDelete?.let { onDeletePieceClick(it.id) }
+                        itemToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("মুছে ফেলুন")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToDelete = null }) {
+                    Text("বাতিল")
+                }
+            }
+        )
     }
 }
 
