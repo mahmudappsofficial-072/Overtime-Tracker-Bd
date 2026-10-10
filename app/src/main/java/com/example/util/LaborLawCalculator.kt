@@ -44,6 +44,39 @@ object LaborLawCalculator {
     }
 
     /**
+     * Standard RMG minimum wage gazette breakdown from Gross Salary:
+     * Fixed Allowances = Medical (750) + Conveyance (450) + Food (1250) = 2450
+     * Gross = Basic + (Basic * 0.50) + 2450 = 1.5 * Basic + 2450
+     * Basic = (Gross - 2450) / 1.5
+     */
+    fun calculateFromGrossSalary(grossSalary: Double): AutoAllowanceResult {
+        if (grossSalary <= 0.0) {
+            return AutoAllowanceResult(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        }
+        val fixedAllowances = 2450.0 // 750 + 450 + 1250
+        val basic = if (grossSalary > fixedAllowances) {
+            (grossSalary - fixedAllowances) / 1.5
+        } else {
+            grossSalary / 1.5
+        }
+        val houseRent = basic * 0.50
+        val medical = 750.0
+        val conveyance = 450.0
+        val food = 1250.0
+        val otRate = (basic / STANDARD_MONTHLY_HOURS) * 2.0
+
+        return AutoAllowanceResult(
+            basicSalary = basic,
+            houseRent = houseRent,
+            medicalAllowance = medical,
+            conveyanceAllowance = conveyance,
+            foodAllowance = food,
+            grossSalary = grossSalary,
+            otHourlyRate = otRate
+        )
+    }
+
+    /**
      * Calculate OT amount for given hours and rate
      */
     fun calculateOtAmount(hours: Double, hourlyRate: Double): Double {

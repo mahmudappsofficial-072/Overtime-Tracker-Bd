@@ -151,6 +151,16 @@ class OvertimeRepository(private val database: AppDatabase) {
         }
     }
 
+    suspend fun clearAllLocalData() {
+        try {
+            overtimeDao.deleteAllRecords()
+            pieceRateDao.deleteAllPieceRecords()
+            userProfileDao.insertOrUpdateProfile(UserProfile(id = 1))
+        } catch (e: Exception) {
+            Log.e("OvertimeRepository", "Error clearing local data", e)
+        }
+    }
+
     // --- Automatic Firebase Sync Engine ---
 
     private fun getDocId(profile: UserProfile? = null): String? {
@@ -407,7 +417,7 @@ class OvertimeRepository(private val database: AppDatabase) {
                 val remotePr = mapToPieceRate(data) ?: continue
                 val existingLocal = pieceRateDao.getPieceRecordById(remotePr.id)
                 if (existingLocal == null) {
-                    pieceRateDao.insertPieceRecord(remotePr.copy(id = 0L))
+                    pieceRateDao.insertPieceRecord(remotePr)
                 }
             }
 

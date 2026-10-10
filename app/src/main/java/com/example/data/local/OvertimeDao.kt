@@ -46,4 +46,7 @@ interface OvertimeDao {
 
     @Query("SELECT SUM(otHours) FROM overtime_records WHERE yearMonth = :yearMonth")
     fun getTotalOtHoursByMonth(yearMonth: String): Flow<Double?>
+
+    @Query("DELETE FROM overtime_records")
+    suspend fun deleteAllRecords()
 }

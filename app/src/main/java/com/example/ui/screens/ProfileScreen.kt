@@ -59,6 +59,18 @@ fun ProfileScreen(
 
     // Salary state
     var isCustomSalary by remember(profile) { mutableStateOf(profile.isCustomSalary) }
+    
+    // Initial gross salary calculation from saved profile
+    val initialGross = remember(profile) {
+        if (profile.basicSalary > 0.0) {
+            val auto = LaborLawCalculator.calculateAutoAllowances(profile.basicSalary)
+            auto.grossSalary.toInt().toString()
+        } else {
+            "0"
+        }
+    }
+    var grossSalaryText by remember(profile) { mutableStateOf(initialGross) }
+
     var basicSalaryText by remember(profile) {
         mutableStateOf(if (profile.basicSalary == 0.0) "0" else profile.basicSalary.toInt().toString())
     }
@@ -92,16 +104,18 @@ fun ProfileScreen(
     // Dialog flags
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
+    var showSignOutConfirmDialog by remember { mutableStateOf(false) }
 
-    // Auto-calculate allowances if mode is Automatic
-    val currentBasic = basicSalaryText.toDoubleOrNull() ?: 0.0
-    val autoResult = remember(currentBasic) {
-        LaborLawCalculator.calculateAutoAllowances(currentBasic)
+    // Auto-calculate allowances from Gross Salary if mode is Automatic
+    val currentGross = grossSalaryText.toDoubleOrNull() ?: 0.0
+    val autoResult = remember(currentGross) {
+        LaborLawCalculator.calculateFromGrossSalary(currentGross)
     }
 
     val effectiveHourlyOtRate = if (isCustomSalary) {
         val customRate = customOtRateText.toDoubleOrNull() ?: 0.0
-        if (customRate > 0.0) customRate else (currentBasic / 104.0)
+        val customBasic = basicSalaryText.toDoubleOrNull() ?: 0.0
+        if (customRate > 0.0) customRate else if (customBasic > 0.0) (customBasic / 104.0) else 0.0
     } else {
         autoResult.otHourlyRate
     }
@@ -311,7 +325,7 @@ fun ProfileScreen(
                         }
 
                         TextButton(
-                            onClick = onSignOut,
+                            onClick = { showSignOutConfirmDialog = true },
                             modifier = Modifier.testTag("sign_out_button")
                         ) {
                             Text(
@@ -468,6 +482,7 @@ fun ProfileScreen(
                                 .clickable {
                                     isCustomSalary = false
                                     // sync auto values
+                                    basicSalaryText = autoResult.basicSalary.toInt().toString()
                                     houseRentText = autoResult.houseRent.toInt().toString()
                                     medicalText = "750"
                                     conveyanceText = autoResult.conveyanceAllowance.toInt().toString()
@@ -494,7 +509,13 @@ fun ProfileScreen(
                             color = if (isCustomSalary) MaterialTheme.colorScheme.primary else Color.Transparent,
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { isCustomSalary = true }
+                                .clickable {
+                                    isCustomSalary = true
+                                    // ensure basic and allowances carry over
+                                    if (basicSalaryText.isBlank() || basicSalaryText == "0") {
+                                        basicSalaryText = autoResult.basicSalary.toInt().toString()
+                                    }
+                                }
                                 .testTag("mode_custom_tab")
                         ) {
                             Box(
@@ -518,7 +539,7 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                         ) {
                             Text(
-                                text = "⚖️ বাংলাদেশ শ্রম আইন অনুযায়ী ওটি হার = মূল বেতন ÷ ১০৪ (দ্বিগুণ হার)। মূল বেতন দিলেই বাড়িভাড়া ও ভাতাসমূহ স্বয়ংক্রিয়ভাবে হিসাব হবে।",
+                                text = "⚖️ সরকারি নিয়ম অনুযায়ী মোট বেতন দিলে মূল বেতন, বাড়িভাড়া ও ভাতাসমূহ স্বয়ংক্রিয়ভাবে হিসাব হবে। ওটি হার = মূল বেতন ÷ ১০৪ (দ্বিগুণ হার)।",
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -531,7 +552,7 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
                         ) {
                             Text(
-                                text = "⚙️ কাস্টম মোড: আপনার ফ্যাক্টরির নিয়ম অনুযায়ী যেকোনো ভাতা বা প্রতি ঘণ্টার ওটি রেট নিজের মতো বসিয়ে নিতে পারবেন।",
+                                text = "⚙️ কাস্টম মোড: আপনার ফ্যাক্টরির নিয়ম অনুযায়ী মূল বেতন, যেকোনো ভাতা বা প্রতি ঘণ্টার ওটি রেট নিজের মতো বসিয়ে নিতে পারবেন।",
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -540,19 +561,49 @@ fun ProfileScreen(
                         }
                     }
 
-                    // Basic Salary Field
-                    OutlinedTextField(
-                        value = basicSalaryText,
-                        onValueChange = { basicSalaryText = it },
-                        label = { Text("মূল বেতন (Basic Salary ৳)") },
-                        modifier = Modifier.fillMaxWidth().testTag("basic_salary_input"),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.MonetizationOn, contentDescription = null) }
-                    )
+                    if (!isCustomSalary) {
+                        // In Automatic mode: User enters Gross Salary
+                        OutlinedTextField(
+                            value = grossSalaryText,
+                            onValueChange = { grossSalaryText = it },
+                            label = { Text("মোট বেতন (Gross Salary ৳)") },
+                            modifier = Modifier.fillMaxWidth().testTag("gross_salary_input"),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                        )
+                    } else {
+                        // In Custom mode: User can edit Basic Salary directly here or in breakdown
+                        OutlinedTextField(
+                            value = basicSalaryText,
+                            onValueChange = { basicSalaryText = it },
+                            label = { Text("মূল বেতন (Basic Salary ৳)") },
+                            modifier = Modifier.fillMaxWidth().testTag("basic_salary_input"),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Default.MonetizationOn, contentDescription = null) }
+                        )
+                    }
 
                     // Allowances Section
-                    Text("ভাতাসমূহ (Allowances):", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(
+                        text = if (!isCustomSalary) "সরকারি নিয়মে স্বয়ংক্রিয় হিসাব (লকড):" else "ভাতাসমূহ (Allowances):",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+
+                    // Basic Salary (Locked in Auto mode, editable in Custom mode)
+                    if (!isCustomSalary) {
+                        OutlinedTextField(
+                            value = autoResult.basicSalary.toInt().toString(),
+                            onValueChange = {},
+                            label = { Text("মূল বেতন (Basic Salary - লকড)") },
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth().testTag("locked_basic_salary_input"),
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.outline) },
+                            singleLine = true
+                        )
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -679,10 +730,12 @@ fun ProfileScreen(
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
-                                val calculatedGross = currentBasic + (
-                                    if (isCustomSalary) (houseRentText.toDoubleOrNull() ?: 0.0) + (medicalText.toDoubleOrNull() ?: 0.0) + (conveyanceText.toDoubleOrNull() ?: 0.0) + (foodText.toDoubleOrNull() ?: 0.0)
-                                    else autoResult.grossSalary - currentBasic
-                                )
+                                val calculatedGross = if (isCustomSalary) {
+                                    val customBasic = basicSalaryText.toDoubleOrNull() ?: 0.0
+                                    customBasic + (houseRentText.toDoubleOrNull() ?: 0.0) + (medicalText.toDoubleOrNull() ?: 0.0) + (conveyanceText.toDoubleOrNull() ?: 0.0) + (foodText.toDoubleOrNull() ?: 0.0)
+                                } else {
+                                    autoResult.grossSalary
+                                }
                                 Text(
                                     text = LaborLawCalculator.formatCurrency(calculatedGross, isBn),
                                     fontSize = 16.sp,
@@ -700,11 +753,15 @@ fun ProfileScreen(
         item {
             Button(
                 onClick = {
-                    val basic = basicSalaryText.toDoubleOrNull() ?: 0.0
-                    val house = if (isCustomSalary) (houseRentText.toDoubleOrNull() ?: 0.0) else basic * 0.50
+                    val basic = if (isCustomSalary) {
+                        basicSalaryText.toDoubleOrNull() ?: 0.0
+                    } else {
+                        autoResult.basicSalary
+                    }
+                    val house = if (isCustomSalary) (houseRentText.toDoubleOrNull() ?: 0.0) else autoResult.houseRent
                     val medical = if (isCustomSalary) (medicalText.toDoubleOrNull() ?: 750.0) else 750.0
-                    val conveyance = if (isCustomSalary) (conveyanceText.toDoubleOrNull() ?: 0.0) else (if (basic > 0.0) 450.0 else 0.0)
-                    val food = if (isCustomSalary) (foodText.toDoubleOrNull() ?: 0.0) else (if (basic > 0.0) 1250.0 else 0.0)
+                    val conveyance = if (isCustomSalary) (conveyanceText.toDoubleOrNull() ?: 0.0) else autoResult.conveyanceAllowance
+                    val food = if (isCustomSalary) (foodText.toDoubleOrNull() ?: 0.0) else autoResult.foodAllowance
                     val attendance = attendanceBonusText.toDoubleOrNull() ?: 0.0
                     val night = nightBillRateText.toDoubleOrNull() ?: 0.0
                     val tiffin = tiffinBillRateText.toDoubleOrNull() ?: 0.0
@@ -921,6 +978,43 @@ fun ProfileScreen(
         PrivacyPolicyDialog(
             lang = lang,
             onDismiss = { showPrivacyDialog = false }
+        )
+    }
+
+    // Sign Out Confirmation Dialog
+    if (showSignOutConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutConfirmDialog = false },
+            title = {
+                Text(
+                    text = if (isBn) "লগআউট নিশ্চিতকরণ" else "Confirm Sign Out",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (isBn)
+                        "আপনি কি নিশ্চিত যে আপনার গুগল অ্যাকাউন্ট থেকে লগআউট করতে চান? ক্লাউড ব্যাকআপ আবার সক্রিয় করতে পুনরায় লগইন করতে হবে।"
+                    else
+                        "Are you sure you want to sign out of your Google account? You will need to sign in again to enable cloud backup."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSignOutConfirmDialog = false
+                        onSignOut()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(if (isBn) "লগআউট করুন" else "Sign Out")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutConfirmDialog = false }) {
+                    Text(if (isBn) "বাতিল" else "Cancel")
+                }
+            }
         )
     }
 }

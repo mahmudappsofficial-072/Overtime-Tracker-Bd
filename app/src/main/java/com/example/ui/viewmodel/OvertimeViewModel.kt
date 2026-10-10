@@ -306,7 +306,10 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun signOut() {
-        com.example.data.auth.AuthManager.signOut()
+        viewModelScope.launch {
+            com.example.data.auth.AuthManager.signOut()
+            repository.clearAllLocalData()
+        }
     }
 }
 

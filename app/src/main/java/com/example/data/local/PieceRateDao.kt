@@ -40,4 +40,7 @@ interface PieceRateDao {
 
     @Query("SELECT SUM(totalAmount) FROM piece_rate_records WHERE yearMonth = :yearMonth")
     fun getTotalPieceAmountByMonth(yearMonth: String): Flow<Double?>
+
+    @Query("DELETE FROM piece_rate_records")
+    suspend fun deleteAllPieceRecords()
 }
