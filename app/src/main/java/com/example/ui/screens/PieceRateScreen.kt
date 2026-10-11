@@ -345,8 +345,13 @@ fun PieceRateScreen(
                                 if (summary.tiffinBillTotal > 0) {
                                     SlipRow("টিফিন বিল (${summary.tiffinBillCount}টি)", LaborLawCalculator.formatCurrency(summary.tiffinBillTotal, isBn))
                                 }
-                                if (summary.totalPieceAmount > 0) {
-                                    SlipRow("পিস রেট আয়", LaborLawCalculator.formatCurrency(summary.totalPieceAmount, isBn))
+                                if (summary.absentDeduction > 0) {
+                                    SlipRow(
+                                        "অনুপস্থিতি কর্তন (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন)",
+                                        "- " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn),
+                                        isBold = true,
+                                        isDeduction = true
+                                    )
                                 }
 
                                 Divider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
@@ -421,7 +426,7 @@ fun PieceRateScreen(
                                     🩺 চিকিৎসা ও খাদ্য ভাতা: ${LaborLawCalculator.formatCurrency(profile.medicalAllowance + profile.foodAllowance, isBn)}
                                     ⏱️ ওভারটাইম (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ঘ): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}
                                     🌙 নাইট/টিফিন বিল: ${LaborLawCalculator.formatCurrency(summary.nightBillTotal + summary.tiffinBillTotal, isBn)}
-                                    🎯 হাজিরা বোনাস: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}
+                                    🎯 হাজিরা বোনাস: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                    ❌ অনুপস্থিতি কর্তন (${summary.absentDays} দিন): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}
                                     -------------------------------
                                     ✅ *মোট প্রদেয় বেতন:* ${LaborLawCalculator.formatCurrency(summary.totalEstimatedEarnings, isBn)}
                                     _ওভারটাইম বিডি অ্যাপ দ্বারা প্রস্তুতকৃত_
@@ -480,7 +485,7 @@ fun PieceRateScreen(
 }
 
 @Composable
-private fun SlipRow(label: String, value: String, isBold: Boolean = false) {
+private fun SlipRow(label: String, value: String, isBold: Boolean = false, isDeduction: Boolean = false) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -492,7 +497,7 @@ private fun SlipRow(label: String, value: String, isBold: Boolean = false) {
             text = label,
             fontSize = 12.sp,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isDeduction) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f, fill = false),
             maxLines = 2
         )
@@ -501,6 +506,7 @@ private fun SlipRow(label: String, value: String, isBold: Boolean = false) {
             text = value,
             fontSize = 12.sp,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.SemiBold,
+            color = if (isDeduction) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             softWrap = false
         )

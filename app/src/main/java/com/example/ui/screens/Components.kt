@@ -248,8 +248,10 @@ fun ProfessionalDatePickerField(
 fun QuickOtEntryDialog(
     initialRecord: OvertimeRecord? = null,
     hourlyRate: Double,
+    profile: com.example.data.model.UserProfile? = null,
     lang: String,
     onDismiss: () -> Unit,
+    onNavigateToProfile: () -> Unit = {},
     onSave: (date: String, hours: Double, nightBill: Boolean, tiffinBill: Boolean, isHoliday: Boolean, shiftType: String, note: String) -> Unit
 ) {
     val isBn = lang == "bn"
@@ -267,6 +269,9 @@ fun QuickOtEntryDialog(
     var hasTiffinBill by remember { mutableStateOf(initialRecord?.hasTiffinBill ?: false) }
     var isHoliday by remember { mutableStateOf(initialRecord?.isHoliday ?: false) }
     var note by remember { mutableStateOf(initialRecord?.note ?: "") }
+
+    // Warning dialog type: "SALARY", "NIGHT_BILL", "TIFFIN_BILL" or null
+    var missingFieldWarning by remember { mutableStateOf<String?>(null) }
 
     val presetHours = listOf(1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0)
     val parsedHours = hoursText.toDoubleOrNull() ?: 0.0
@@ -324,7 +329,14 @@ fun QuickOtEntryDialog(
                             onClick = {
                                 selectedShift = shift.code
                                 when (shift) {
-                                    ShiftType.NIGHT -> hasNightBill = true
+                                    ShiftType.NIGHT -> {
+                                        if ((profile?.nightBillRate ?: 0.0) <= 0.0) {
+                                            hasNightBill = false
+                                            missingFieldWarning = "NIGHT_BILL"
+                                        } else {
+                                            hasNightBill = true
+                                        }
+                                    }
                                     ShiftType.HOLIDAY -> isHoliday = true
                                     ShiftType.DAY -> {
                                         isHoliday = false
@@ -374,8 +386,52 @@ fun QuickOtEntryDialog(
                     }
                 }
 
-                // Preset hour chips (disabled or hidden for Absent/Leave if 0h)
-                if (selectedShift != ShiftType.ABSENT.code && selectedShift != ShiftType.LEAVE.code) {
+                // When shift is Weekly Off, Leave, or Absent, hide all OT inputs and show status info
+                val isOffOrLeaveShift = selectedShift == ShiftType.WEEKLY_OFF.code ||
+                        selectedShift == ShiftType.LEAVE.code ||
+                        selectedShift == ShiftType.ABSENT.code
+
+                if (isOffOrLeaveShift) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = when (selectedShift) {
+                            ShiftType.ABSENT.code -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                            ShiftType.LEAVE.code -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = when (selectedShift) {
+                                ShiftType.ABSENT.code -> if (isBn)
+                                    "⚠️ আজকের দিনটি অনুপস্থিত হিসেবে রেকর্ড হবে (হাজিরা বোনাস বাতিল ও ১ দিনের বেতন কর্তন হবে)।"
+                                else
+                                    "⚠️ Marked as Absent (Attendance bonus forfeited & 1 day salary deducted)."
+                                ShiftType.LEAVE.code -> if (isBn)
+                                    "🏖️ আজকের দিনটি ছুটি হিসেবে গণ্য হবে (হাজিরা কাটা যাবে না)।"
+                                else
+                                    "🏖️ Marked as Leave (Attendance bonus preserved)."
+                                else -> if (isBn)
+                                    "🌴 আজকের দিনটি সাপ্তাহিক ছুটি হিসেবে সংরক্ষিত হবে (ওটি প্রযোজ্য নয়)।"
+                                else
+                                    "🌴 Marked as Weekly Off (No OT applicable)."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = when (selectedShift) {
+                                ShiftType.ABSENT.code -> MaterialTheme.colorScheme.onErrorContainer
+                                ShiftType.LEAVE.code -> MaterialTheme.colorScheme.onTertiaryContainer
+                                else -> MaterialTheme.colorScheme.onPrimaryContainer
+                            },
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
+                } else {
+                    // Regular OT Inputs (Visible only for regular/work shifts)
+
+                    // Preset hour chips
                     Text(
                         text = "দ্রুত ওটি ঘণ্টা নির্বাচন:",
                         style = MaterialTheme.typography.labelMedium,
@@ -409,96 +465,152 @@ fun QuickOtEntryDialog(
                             )
                         }
                     }
-                }
 
-                // Hours custom input
-                OutlinedTextField(
-                    value = hoursText,
-                    onValueChange = { hoursText = it },
-                    label = { Text(LanguageManager.get("hours", lang)) },
-                    modifier = Modifier.fillMaxWidth().testTag("ot_hours_input"),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
-                    supportingText = {
-                        Text(
-                            text = "আনুমানিক ওটি টাকা: ${LaborLawCalculator.formatCurrency(calculatedAmount, isBn)}",
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    // Hours custom input
+                    OutlinedTextField(
+                        value = hoursText,
+                        onValueChange = { hoursText = it },
+                        label = { Text(LanguageManager.get("hours", lang)) },
+                        modifier = Modifier.fillMaxWidth().testTag("ot_hours_input"),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                        supportingText = {
+                            Text(
+                                text = "আনুমানিক ওটি টাকা: ${LaborLawCalculator.formatCurrency(calculatedAmount, isBn)}",
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    )
+
+                    // Additional Checkboxes
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (!hasNightBill) {
+                                            if ((profile?.nightBillRate ?: 0.0) <= 0.0) {
+                                                missingFieldWarning = "NIGHT_BILL"
+                                            } else {
+                                                hasNightBill = true
+                                            }
+                                        } else {
+                                            hasNightBill = false
+                                        }
+                                    }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = hasNightBill,
+                                    onCheckedChange = { checked ->
+                                        if (checked) {
+                                            if ((profile?.nightBillRate ?: 0.0) <= 0.0) {
+                                                missingFieldWarning = "NIGHT_BILL"
+                                            } else {
+                                                hasNightBill = true
+                                            }
+                                        } else {
+                                            hasNightBill = false
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("night_bill_checkbox")
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(LanguageManager.get("night_bill", lang), style = MaterialTheme.typography.bodyMedium)
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (!hasTiffinBill) {
+                                            if ((profile?.tiffinBillRate ?: 0.0) <= 0.0) {
+                                                missingFieldWarning = "TIFFIN_BILL"
+                                            } else {
+                                                hasTiffinBill = true
+                                            }
+                                        } else {
+                                            hasTiffinBill = false
+                                        }
+                                    }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = hasTiffinBill,
+                                    onCheckedChange = { checked ->
+                                        if (checked) {
+                                            if ((profile?.tiffinBillRate ?: 0.0) <= 0.0) {
+                                                missingFieldWarning = "TIFFIN_BILL"
+                                            } else {
+                                                hasTiffinBill = true
+                                            }
+                                        } else {
+                                            hasTiffinBill = false
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("tiffin_bill_checkbox")
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(LanguageManager.get("tiffin_bill", lang), style = MaterialTheme.typography.bodyMedium)
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { isHoliday = !isHoliday }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = isHoliday,
+                                    onCheckedChange = { isHoliday = it },
+                                    modifier = Modifier.testTag("holiday_checkbox")
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(LanguageManager.get("holiday_ot", lang), style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
                     }
-                )
 
-                // Additional Checkboxes
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { hasNightBill = !hasNightBill }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Checkbox(
-                                checked = hasNightBill,
-                                onCheckedChange = { hasNightBill = it },
-                                modifier = Modifier.testTag("night_bill_checkbox")
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(LanguageManager.get("night_bill", lang), style = MaterialTheme.typography.bodyMedium)
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { hasTiffinBill = !hasTiffinBill }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Checkbox(
-                                checked = hasTiffinBill,
-                                onCheckedChange = { hasTiffinBill = it },
-                                modifier = Modifier.testTag("tiffin_bill_checkbox")
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(LanguageManager.get("tiffin_bill", lang), style = MaterialTheme.typography.bodyMedium)
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { isHoliday = !isHoliday }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Checkbox(
-                                checked = isHoliday,
-                                onCheckedChange = { isHoliday = it },
-                                modifier = Modifier.testTag("holiday_checkbox")
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(LanguageManager.get("holiday_ot", lang), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
+                    // Note input
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = { note = it },
+                        label = { Text(LanguageManager.get("note", lang)) },
+                        modifier = Modifier.fillMaxWidth().testTag("ot_note_input"),
+                        singleLine = true
+                    )
                 }
-
-                // Note input
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text(LanguageManager.get("note", lang)) },
-                    modifier = Modifier.fillMaxWidth().testTag("ot_note_input"),
-                    singleLine = true
-                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     val finalHours = hoursText.toDoubleOrNull() ?: 0.0
+                    // Validation 1: If hours > 0 but basic salary or hourlyRate <= 0
+                    if (finalHours > 0.0 && hourlyRate <= 0.0 && (profile?.basicSalary ?: 0.0) <= 0.0) {
+                        missingFieldWarning = "SALARY"
+                        return@Button
+                    }
+                    // Validation 2: If night bill selected but rate <= 0
+                    if (hasNightBill && (profile?.nightBillRate ?: 0.0) <= 0.0) {
+                        missingFieldWarning = "NIGHT_BILL"
+                        return@Button
+                    }
+                    // Validation 3: If tiffin bill selected but rate <= 0
+                    if (hasTiffinBill && (profile?.tiffinBillRate ?: 0.0) <= 0.0) {
+                        missingFieldWarning = "TIFFIN_BILL"
+                        return@Button
+                    }
+
                     if (finalHours >= 0.0 && date.isNotBlank()) {
                         onSave(date, finalHours, hasNightBill, hasTiffinBill, isHoliday, selectedShift, note)
                     }
@@ -514,6 +626,68 @@ fun QuickOtEntryDialog(
             }
         }
     )
+
+    // Interactive Alert Dialog when required rates are missing in profile
+    if (missingFieldWarning != null) {
+        val warningType = missingFieldWarning
+        AlertDialog(
+            onDismissRequest = { missingFieldWarning = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = when (warningType) {
+                            "NIGHT_BILL" -> if (isBn) "নাইট বিল রেট যোগ করা নেই!" else "Night Bill Rate Missing!"
+                            "TIFFIN_BILL" -> if (isBn) "টিফিন বিল রেট যোগ করা নেই!" else "Tiffin Bill Rate Missing!"
+                            else -> if (isBn) "বেতন কাঠামো যোগ করা নেই!" else "Salary Setup Missing!"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = when (warningType) {
+                        "NIGHT_BILL" -> if (isBn)
+                            "আপনার প্রোফাইলে এখনও প্রতি রাতের নাইট বিল রেট যোগ করা হয়নি। দয়া করে প্রোফাইলে গিয়ে নাইট বিলের রেট বসিয়ে নিন।"
+                        else
+                            "Night bill rate is not configured in your profile. Please add your night bill rate in profile settings."
+                        "TIFFIN_BILL" -> if (isBn)
+                            "আপনার প্রোফাইলে এখনও প্রতি দিনের টিফিন বিল রেট যোগ করা হয়নি। দয়া করে প্রোফাইলে গিয়ে টিফিন বিল রেট বসিয়ে নিন।"
+                        else
+                            "Tiffin bill rate is not configured in your profile. Please add your tiffin bill rate in profile settings."
+                        else -> if (isBn)
+                            "আপনার প্রোফাইলে এখনও মোট বেতন বা ওটি রেট যোগ করা হয়নি। ওটি যোগ করার আগে দয়া করে প্রোফাইলে গিয়ে বেতন কাঠামো নির্ধারণ করুন, অন্যথায় ওটি টাকা হিসাব করা যাবে না।"
+                        else
+                            "Salary or OT rate is not configured in your profile. Please set up your salary in profile settings first."
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        missingFieldWarning = null
+                        onNavigateToProfile()
+                    }
+                ) {
+                    Text(if (isBn) "প্রোফাইলে যান" else "Go to Profile")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { missingFieldWarning = null }) {
+                    Text(if (isBn) "বাতিল" else "Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable

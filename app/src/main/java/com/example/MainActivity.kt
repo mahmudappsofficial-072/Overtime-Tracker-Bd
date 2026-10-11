@@ -229,10 +229,16 @@ fun OvertimeApp(viewModel: OvertimeViewModel = viewModel()) {
         QuickOtEntryDialog(
             initialRecord = recordToEdit,
             hourlyRate = summary.hourlyOtRate,
+            profile = profile,
             lang = lang,
             onDismiss = {
                 showQuickOtDialog = false
                 recordToEdit = null
+            },
+            onNavigateToProfile = {
+                showQuickOtDialog = false
+                recordToEdit = null
+                currentTab = 3
             },
             onSave = { date, hours, nightBill, tiffinBill, isHoliday, shiftType, note ->
                 viewModel.addOrUpdateOvertime(

@@ -129,7 +129,14 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
 
         val grossSalary = if (profile.basicSalary > 0.0) profile.basicSalary + allowances else 0.0
         val attendanceBonus = if (profile.basicSalary > 0.0 && absentDays == 0) profile.attendanceBonus else 0.0
-        val totalEstimatedEarnings = grossSalary + totalOtAmount + nightBillTotal + tiffinBillTotal + totalPieceAmount + attendanceBonus
+        
+        // Labor law absent deduction: daily gross rate = grossSalary / 30
+        val absentDeduction = if (grossSalary > 0.0 && absentDays > 0) {
+            (grossSalary / 30.0) * absentDays
+        } else {
+            0.0
+        }
+        val totalEstimatedEarnings = (grossSalary - absentDeduction).coerceAtLeast(0.0) + totalOtAmount + nightBillTotal + tiffinBillTotal + totalPieceAmount + attendanceBonus
 
         val targetHours = profile.monthlyOtTargetHours
         val progress = if (targetHours > 0) (totalOtHours / targetHours).coerceIn(0.0, 1.0).toFloat() else 0f
@@ -148,6 +155,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             allowances = allowances,
             grossSalary = grossSalary,
             attendanceBonus = attendanceBonus,
+            absentDeduction = absentDeduction,
             totalEstimatedEarnings = totalEstimatedEarnings,
             targetHours = targetHours,
             targetProgress = progress,
@@ -326,6 +334,7 @@ data class MonthlySummaryState(
     val allowances: Double = 0.0,
     val grossSalary: Double = 0.0,
     val attendanceBonus: Double = 0.0,
+    val absentDeduction: Double = 0.0,
     val totalEstimatedEarnings: Double = 0.0,
     val targetHours: Double = 0.0,
     val targetProgress: Float = 0f,
