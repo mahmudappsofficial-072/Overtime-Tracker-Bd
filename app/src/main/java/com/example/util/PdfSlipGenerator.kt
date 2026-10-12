@@ -57,6 +57,17 @@ object PdfSlipGenerator {
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         canvas.drawText("মাসিক বেতন ও ওভারটাইম স্লিপ (Salary & Overtime Pay Slip) • $selectedMonth", 44f, 85f, paint)
 
+        // Brand Logo on top-right of PDF Header
+        try {
+            val logoBmp = android.graphics.BitmapFactory.decodeResource(context.resources, com.example.R.drawable.ic_app_logo)
+            if (logoBmp != null) {
+                val scaledLogo = android.graphics.Bitmap.createScaledBitmap(logoBmp, 60, 60, true)
+                canvas.drawBitmap(scaledLogo, pageWidth - 96f, 37f, paint)
+            }
+        } catch (e: Exception) {
+            // Ignore logo draw error in PDF
+        }
+
         var y = 140f
 
         // Employee Meta Box

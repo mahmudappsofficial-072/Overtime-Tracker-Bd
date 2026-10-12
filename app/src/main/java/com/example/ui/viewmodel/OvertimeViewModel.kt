@@ -31,6 +31,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
         val db = AppDatabase.getDatabase(application)
         repository = OvertimeRepository(db)
         viewModelScope.launch {
+            repository.cleanupDuplicateDates()
             com.example.data.auth.AuthManager.currentUser.collect { user ->
                 if (user != null) {
                     repository.fullAutoSyncAndRestore()

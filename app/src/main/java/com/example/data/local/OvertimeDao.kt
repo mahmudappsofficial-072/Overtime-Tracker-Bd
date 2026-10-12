@@ -11,13 +11,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface OvertimeDao {
-    @Query("SELECT * FROM overtime_records ORDER BY date DESC, id DESC")
+    @Query("SELECT * FROM overtime_records WHERE id IN (SELECT MAX(id) FROM overtime_records GROUP BY date) ORDER BY date DESC, id DESC")
     fun getAllRecords(): Flow<List<OvertimeRecord>>
 
-    @Query("SELECT * FROM overtime_records WHERE yearMonth = :yearMonth ORDER BY date DESC, id DESC")
+    @Query("SELECT * FROM overtime_records WHERE yearMonth = :yearMonth AND id IN (SELECT MAX(id) FROM overtime_records GROUP BY date) ORDER BY date DESC, id DESC")
     fun getRecordsByMonth(yearMonth: String): Flow<List<OvertimeRecord>>
 
-    @Query("SELECT * FROM overtime_records WHERE date = :date LIMIT 1")
+    @Query("SELECT * FROM overtime_records WHERE date = :date ORDER BY id DESC LIMIT 1")
     suspend fun getRecordByDate(date: String): OvertimeRecord?
 
     @Query("SELECT * FROM overtime_records WHERE id = :id LIMIT 1")
@@ -44,7 +44,7 @@ interface OvertimeDao {
     @Query("DELETE FROM overtime_records WHERE id NOT IN (SELECT MAX(id) FROM overtime_records GROUP BY date)")
     suspend fun cleanupDuplicateDates()
 
-    @Query("SELECT SUM(otHours) FROM overtime_records WHERE yearMonth = :yearMonth")
+    @Query("SELECT SUM(otHours) FROM overtime_records WHERE yearMonth = :yearMonth AND id IN (SELECT MAX(id) FROM overtime_records GROUP BY date)")
     fun getTotalOtHoursByMonth(yearMonth: String): Flow<Double?>
 
     @Query("DELETE FROM overtime_records")

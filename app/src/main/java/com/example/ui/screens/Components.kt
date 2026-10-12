@@ -247,6 +247,7 @@ fun ProfessionalDatePickerField(
 @Composable
 fun QuickOtEntryDialog(
     initialRecord: OvertimeRecord? = null,
+    existingRecords: List<OvertimeRecord> = emptyList(),
     hourlyRate: Double,
     profile: com.example.data.model.UserProfile? = null,
     lang: String,
@@ -272,6 +273,8 @@ fun QuickOtEntryDialog(
 
     // Warning dialog type: "SALARY", "NIGHT_BILL", "TIFFIN_BILL" or null
     var missingFieldWarning by remember { mutableStateOf<String?>(null) }
+    // Overwrite confirmation dialog holds the existing record that would be overwritten
+    var pendingOverwriteRecord by remember { mutableStateOf<OvertimeRecord?>(null) }
 
     val presetHours = listOf(1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0)
     val parsedHours = hoursText.toDoubleOrNull() ?: 0.0
@@ -612,6 +615,24 @@ fun QuickOtEntryDialog(
                     }
 
                     if (finalHours >= 0.0 && date.isNotBlank()) {
+                        // Check if an existing record exists on the chosen date
+                        val existingOnDate = existingRecords.find { it.date == date }
+                        if (existingOnDate != null) {
+                            val isDifferentRecord = initialRecord == null || initialRecord.id != existingOnDate.id
+                            val isSameRecordModified = initialRecord != null && initialRecord.id == existingOnDate.id && (
+                                    initialRecord.otHours != finalHours ||
+                                    initialRecord.shiftType != selectedShift ||
+                                    initialRecord.hasNightBill != hasNightBill ||
+                                    initialRecord.hasTiffinBill != hasTiffinBill ||
+                                    initialRecord.isHoliday != isHoliday ||
+                                    initialRecord.note != note
+                            )
+                            if (isDifferentRecord || isSameRecordModified) {
+                                pendingOverwriteRecord = existingOnDate
+                                return@Button
+                            }
+                        }
+
                         onSave(date, finalHours, hasNightBill, hasTiffinBill, isHoliday, selectedShift, note)
                     }
                 },
@@ -684,6 +705,97 @@ fun QuickOtEntryDialog(
             dismissButton = {
                 TextButton(onClick = { missingFieldWarning = null }) {
                     Text(if (isBn) "বাতিল" else "Cancel")
+                }
+            }
+        )
+    }
+
+    // Overwrite Confirmation Alert Dialog
+    if (pendingOverwriteRecord != null) {
+        val oldRec = pendingOverwriteRecord!!
+        val oldShift = ShiftType.fromCode(oldRec.shiftType).getLabel(isBn)
+        val newShift = ShiftType.fromCode(selectedShift).getLabel(isBn)
+        val finalHours = hoursText.toDoubleOrNull() ?: 0.0
+
+        AlertDialog(
+            onDismissRequest = { pendingOverwriteRecord = null },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = if (isBn) "এই তারিখে ইতিমধ্যে ওটি তথ্য আছে!" else "Entry already exists for this date!",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = if (isBn)
+                            "আপনি $date তারিখের পূর্ববর্তী তথ্য পরিবর্তন করতে যাচ্ছেন:"
+                        else
+                            "You are about to overwrite existing data for $date:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = if (isBn)
+                                    "• আগের তথ্য: ${LaborLawCalculator.formatNumber(oldRec.otHours, isBn)} ঘণ্টা ($oldShift)"
+                                else
+                                    "• Current: ${oldRec.otHours} hrs ($oldShift)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = if (isBn)
+                                    "• নতুন তথ্য: ${LaborLawCalculator.formatNumber(finalHours, isBn)} ঘণ্টা ($newShift)"
+                                else
+                                    "• New: $finalHours hrs ($newShift)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = if (isBn)
+                            "আপনি কি নিশ্চিতভাবে আগের তথ্যটি পরিবর্তন (ওভাররাইট) করতে চান?"
+                        else
+                            "Are you sure you want to overwrite the previous entry?",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val toSaveId = oldRec.id
+                        pendingOverwriteRecord = null
+                        onSave(date, finalHours, hasNightBill, hasTiffinBill, isHoliday, selectedShift, note)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(if (isBn) "পরিবর্তন নিশ্চিত করুন" else "Confirm Overwrite")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingOverwriteRecord = null }) {
+                    Text(if (isBn) "বাতিল (আগেরটি রাখুন)" else "Cancel (Keep Current)")
                 }
             }
         )

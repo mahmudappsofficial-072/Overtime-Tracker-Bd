@@ -228,6 +228,7 @@ fun OvertimeApp(viewModel: OvertimeViewModel = viewModel()) {
     if (showQuickOtDialog) {
         QuickOtEntryDialog(
             initialRecord = recordToEdit,
+            existingRecords = otRecords,
             hourlyRate = summary.hourlyOtRate,
             profile = profile,
             lang = lang,

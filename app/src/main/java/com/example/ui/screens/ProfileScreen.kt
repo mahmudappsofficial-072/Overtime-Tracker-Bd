@@ -859,8 +859,14 @@ fun ProfileScreen(
             onDismissRequest = { showSettingsDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(8.dp))
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_app_logo),
+                        contentDescription = "App Logo",
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(LanguageManager.get("settings", lang), fontWeight = FontWeight.Bold)
                 }
             },

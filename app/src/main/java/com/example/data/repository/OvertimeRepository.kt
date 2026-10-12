@@ -118,13 +118,13 @@ class OvertimeRepository(private val database: AppDatabase) {
     }
 
     suspend fun deleteOvertime(id: Long) {
-        val existing = overtimeDao.getRecordById(id)
+        val existing = overtimeDao.getRecordById(id) ?: return
         overtimeDao.deleteRecordById(id)
-        if (existing != null) {
-            // Automatic real-time background deletion from Firebase
-            syncScope.launch {
-                autoDeleteOvertimeFromCloud(existing.date)
-            }
+        // Direct reliable deletion from Firebase Cloud
+        try {
+            autoDeleteOvertimeFromCloud(existing.date)
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Error deleting OT from cloud: ${e.message}")
         }
     }
 
@@ -148,6 +148,14 @@ class OvertimeRepository(private val database: AppDatabase) {
         // Automatic real-time background deletion from Firebase
         syncScope.launch {
             autoDeletePieceRateFromCloud(id)
+        }
+    }
+
+    suspend fun cleanupDuplicateDates() {
+        try {
+            overtimeDao.cleanupDuplicateDates()
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Error cleaning duplicate dates: ${e.message}")
         }
     }
 
@@ -400,8 +408,13 @@ class OvertimeRepository(private val database: AppDatabase) {
                 val existingLocal = overtimeDao.getRecordByDate(remoteOt.date)
                 if (existingLocal == null) {
                     overtimeDao.insertRecord(remoteOt.copy(id = 0L))
+                } else {
+                    // Update existing record maintaining same local ID to avoid duplicates
+                    overtimeDao.insertRecord(remoteOt.copy(id = existingLocal.id))
                 }
             }
+            // Auto cleanup duplicate dates if any previously existed
+            overtimeDao.cleanupDuplicateDates()
 
             // 4. Upload local Piece Rate records to cloud
             val localPieces = pieceRateDao.getAllPieceRecordsList()
