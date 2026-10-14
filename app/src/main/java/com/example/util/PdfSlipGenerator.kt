@@ -159,7 +159,7 @@ object PdfSlipGenerator {
         }
         if (summary.absentDeduction > 0) {
             paint.color = Color.rgb(220, 38, 38)
-            drawPdfRow("অনুপস্থিতি কর্তন (${summary.absentDays} দিন @ Tk ${String.format("%.2f", summary.grossSalary / 30.0)}/দিন)", -summary.absentDeduction, isBold = true)
+            drawPdfRow("অনুপস্থিতি কর্তন (${summary.absentDays} দিন @ Tk ${String.format("%.2f", summary.dailyAbsentRate)}/দিন)", -summary.absentDeduction, isBold = true)
         }
 
         y += 10f

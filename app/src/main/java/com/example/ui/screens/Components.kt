@@ -1010,7 +1010,7 @@ fun PrivacyPolicyDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "ওভারটাইম বিডি - গোপনীয়তা ও সুরক্ষা নীতিমালা",
+                    text = "ওভারটাইম ট্র্যাকার বিডি - গোপনীয়তা ও সুরক্ষা নীতিমালা",
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -1032,3 +1032,143 @@ fun PrivacyPolicyDialog(
         }
     )
 }
+
+@Composable
+fun InitialPrivacyConsentDialog(
+    lang: String,
+    onAgree: () -> Unit,
+    onDecline: () -> Unit,
+    onViewFullPolicy: () -> Unit
+) {
+    val isBn = lang == "bn"
+
+    AlertDialog(
+        onDismissRequest = { /* Force explicit user action */ },
+        shape = RoundedCornerShape(20.dp),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.VerifiedUser,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = if (isBn) "গোপনীয়তা ও ডেটা সুরক্ষার সম্মতি" else "Privacy & Data Consent",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = if (isBn) "Overtime Tracker BD (ওভারটাইম ট্র্যাকার বিডি)" else "Overtime Tracker BD",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = if (isBn)
+                                "ওভারটাইম ট্র্যাকার বিডি অ্যাপটি আপনার কাজের সময়, বেতন ও হাজিরা সঠিকভাবে হিসাব করার জন্য প্রস্তুত করা হয়েছে।"
+                            else
+                                "Overtime Tracker BD is designed to accurately track your work hours, salary calculations, and attendance.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = if (isBn)
+                                "• আপনার অনুমতি সাপেক্ষে বেতন, ভাতা ও ওটি তথ্য ডিভাইসে ও ক্লাউডে (Google Firebase) সংরক্ষিত হবে।\n• আমরা কোনো তথ্য তৃতীয় পক্ষের কাছে বিক্রি বা শেয়ার করি না।\n• আপনি যেকোনো সময় সাইন-আউট করে ডেটা মুছে ফেলতে পারেন।"
+                            else
+                                "• With your consent, salary figures and OT logs are saved on device & cloud (Google Firebase).\n• We never sell or share your personal data with third parties.\n• You can sign out or request permanent data deletion at any time.",
+                            style = MaterialTheme.typography.bodySmall,
+                            lineHeight = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                ) {
+                    Text(
+                        text = if (isBn) "আমাদের পূর্ণাঙ্গ নীতিমালা:" else "Our complete policy:",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(
+                        onClick = onViewFullPolicy,
+                        modifier = Modifier.testTag("consent_view_full_policy_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isBn) "বিস্তারিত পড়ুন" else "Read Details",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onAgree,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.testTag("consent_agree_button")
+            ) {
+                Text(
+                    text = if (isBn) "সম্মত আছি ও প্রবেশ করুন" else "Agree & Continue",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDecline,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.testTag("consent_decline_button")
+            ) {
+                Text(
+                    text = if (isBn) "বাতিল (বেরিয়ে যান)" else "Decline & Exit"
+                )
+            }
+        }
+    )
+}
+

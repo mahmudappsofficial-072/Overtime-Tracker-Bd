@@ -79,7 +79,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (profile.userName.isNotBlank()) profile.userName else "ওভারটাইম ট্র্যাকার",
+                            text = if (profile.userName.isNotBlank()) profile.userName else if (isBn) "ওভারটাইম ট্র্যাকার বিডি" else "Overtime Tracker BD",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -596,17 +596,40 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            val isAbsent = record.shiftType == "ABSENT"
+                            val isLeave = record.shiftType == "LEAVE"
+                            val isWeeklyOff = record.shiftType == "WEEKLY_OFF"
+
+                            val circleBg = when {
+                                isAbsent -> MaterialTheme.colorScheme.errorContainer
+                                isLeave || isWeeklyOff -> MaterialTheme.colorScheme.secondaryContainer
+                                record.isHoliday -> MaterialTheme.colorScheme.tertiaryContainer
+                                else -> MaterialTheme.colorScheme.primaryContainer
+                            }
+                            val circleTextColor = when {
+                                isAbsent -> MaterialTheme.colorScheme.onErrorContainer
+                                isLeave || isWeeklyOff -> MaterialTheme.colorScheme.onSecondaryContainer
+                                record.isHoliday -> MaterialTheme.colorScheme.onTertiaryContainer
+                                else -> MaterialTheme.colorScheme.onPrimaryContainer
+                            }
+                            val circleText = when {
+                                isAbsent -> if (isBn) "অনুপ" else "Abs"
+                                isLeave -> if (isBn) "ছুটি" else "Leave"
+                                isWeeklyOff -> if (isBn) "বন্ধ" else "Off"
+                                else -> "${LaborLawCalculator.formatNumber(record.otHours, isBn)}ঘ"
+                            }
+
                             Surface(
                                 shape = CircleShape,
-                                color = if (record.isHoliday) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer,
+                                color = circleBg,
                                 modifier = Modifier.size(42.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
-                                        text = "${LaborLawCalculator.formatNumber(record.otHours, isBn)}ঘ",
+                                        text = circleText,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = if (record.isHoliday) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                                        fontSize = if (isAbsent || isLeave || isWeeklyOff) 11.sp else 13.sp,
+                                        color = circleTextColor
                                     )
                                 }
                             }
@@ -635,12 +658,27 @@ fun HomeScreen(
                             }
                         }
 
-                        Text(
-                            text = LaborLawCalculator.formatCurrency(record.otHours * summary.hourlyOtRate, isBn),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        if (record.shiftType == "ABSENT") {
+                            val deductionText = if (summary.dailyAbsentRate > 0.0) {
+                                "- " + LaborLawCalculator.formatCurrency(summary.dailyAbsentRate, isBn)
+                            } else {
+                                if (isBn) "- কর্তন" else "- Deduction"
+                            }
+                            Text(
+                                text = deductionText,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            val itemRate = if (record.hourlyRateSnapshot > 0.0) record.hourlyRateSnapshot else summary.hourlyOtRate
+                            Text(
+                                text = LaborLawCalculator.formatCurrency(record.otHours * itemRate, isBn),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }

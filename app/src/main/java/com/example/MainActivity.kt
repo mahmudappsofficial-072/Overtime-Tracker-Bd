@@ -179,6 +179,7 @@ fun OvertimeApp(viewModel: OvertimeViewModel = viewModel()) {
                     selectedMonth = selectedMonth,
                     records = otRecords,
                     hourlyRate = summary.hourlyOtRate,
+                    dailyAbsentRate = summary.dailyAbsentRate,
                     lang = lang,
                     onPreviousMonth = { viewModel.previousMonth() },
                     onNextMonth = { viewModel.nextMonth() },
@@ -285,6 +286,28 @@ fun OvertimeApp(viewModel: OvertimeViewModel = viewModel()) {
             onSave = { newTarget ->
                 viewModel.updateTargetHours(newTarget)
                 showTargetDialog = false
+            }
+        )
+    }
+
+    // Initial Onboarding Privacy Consent Dialog
+    if (!profile.hasAcceptedPrivacyPolicy) {
+        InitialPrivacyConsentDialog(
+            lang = lang,
+            onAgree = {
+                viewModel.acceptPrivacyPolicy()
+            },
+            onDecline = {
+                activity?.finish()
+            },
+            onViewFullPolicy = {
+                val privacyUrl = "https://mahmudappsofficial-072.github.io/overtime-tracker-privacy-policy/"
+                try {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(privacyUrl))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    // Fallback handled safely
+                }
             }
         )
     }

@@ -19,12 +19,15 @@ data class UserProfile(
     val conveyanceAllowance: Double = 0.0,
     val foodAllowance: Double = 0.0,
     val attendanceBonus: Double = 0.0,
+    val maxAbsentForBonus: Int = 1, // Number of absent days that triggers attendance bonus cancellation (Default: 1)
     val nightBillRate: Double = 0.0,
     val tiffinBillRate: Double = 0.0,
     val customOtRate: Double = 0.0,
     val monthlyOtTargetHours: Double = 0.0,
     val language: String = "bn",
     val supportWhatsapp: String = "",
+    val hasAcceptedPrivacyPolicy: Boolean = false,
+    val privacyPolicyAcceptedAt: Long = 0L,
     val lastCloudSyncTime: Long = 0L,
     val cloudSyncStatus: String = "অফলাইন (লোকাল)"
 )

@@ -71,13 +71,31 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             initialValue = emptyList()
         )
 
-    // Summary calculation state
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentMonthSettings: StateFlow<com.example.data.model.MonthlySalarySettings?> = _selectedYearMonth
+        .flatMapLatest { ym -> repository.getMonthlySalarySettings(ym) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    // Summary calculation state - Combines userProfile, month snapshot settings, OT and piece records
     val monthlySummary = combine(
         userProfile,
+        currentMonthSettings,
         monthlyOtRecords,
         monthlyPieceRecords
-    ) { profile, otList, pieceList ->
-        val otRate = LaborLawCalculator.getHourlyOtRate(profile)
+    ) { profile, monthSnapshot, otList, pieceList ->
+        // Use month snapshot if available (e.g. from that specific month), otherwise fallback to profile
+        val isCustom = monthSnapshot?.isCustomSalary ?: profile.isCustomSalary
+        val baseBasic = if (monthSnapshot != null && monthSnapshot.basicSalary > 0.0) monthSnapshot.basicSalary else profile.basicSalary
+        val otRate = if (monthSnapshot != null && monthSnapshot.hourlyOtRate > 0.0) {
+            monthSnapshot.hourlyOtRate
+        } else {
+            LaborLawCalculator.getHourlyOtRate(profile)
+        }
+
         var totalOtHours = 0.0
         var totalOtAmount = 0.0
         var nightBillCount = 0
@@ -85,13 +103,18 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
 
         for (rec in otList) {
             totalOtHours += rec.otHours
-            totalOtAmount += rec.otHours * otRate
+            // If individual record has a stored snapshot rate, respect it; otherwise use effective monthly rate
+            val itemRate = if (rec.hourlyRateSnapshot > 0.0) rec.hourlyRateSnapshot else otRate
+            totalOtAmount += rec.otHours * itemRate
             if (rec.hasNightBill) nightBillCount++
             if (rec.hasTiffinBill) tiffinBillCount++
         }
 
-        val nightBillTotal = nightBillCount * profile.nightBillRate
-        val tiffinBillTotal = tiffinBillCount * profile.tiffinBillRate
+        val effectiveNightRate = if (monthSnapshot != null && monthSnapshot.nightBillRate > 0.0) monthSnapshot.nightBillRate else profile.nightBillRate
+        val effectiveTiffinRate = if (monthSnapshot != null && monthSnapshot.tiffinBillRate > 0.0) monthSnapshot.tiffinBillRate else profile.tiffinBillRate
+
+        val nightBillTotal = nightBillCount * effectiveNightRate
+        val tiffinBillTotal = tiffinBillCount * effectiveTiffinRate
 
         var totalPieceAmount = 0.0
         for (p in pieceList) {
@@ -119,21 +142,36 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
-        val allowances = if (profile.basicSalary <= 0.0) {
+        val allowances = if (baseBasic <= 0.0) {
             0.0
-        } else if (profile.isCustomSalary) {
-            profile.houseRent + profile.medicalAllowance + profile.conveyanceAllowance + profile.foodAllowance
+        } else if (isCustom) {
+            val house = if (monthSnapshot != null && monthSnapshot.houseRent > 0.0) monthSnapshot.houseRent else profile.houseRent
+            val med = if (monthSnapshot != null && monthSnapshot.medicalAllowance > 0.0) monthSnapshot.medicalAllowance else profile.medicalAllowance
+            val conv = if (monthSnapshot != null && monthSnapshot.conveyanceAllowance > 0.0) monthSnapshot.conveyanceAllowance else profile.conveyanceAllowance
+            val food = if (monthSnapshot != null && monthSnapshot.foodAllowance > 0.0) monthSnapshot.foodAllowance else profile.foodAllowance
+            house + med + conv + food
         } else {
-            val auto = LaborLawCalculator.calculateAutoAllowances(profile.basicSalary)
+            val auto = LaborLawCalculator.calculateAutoAllowances(baseBasic)
             auto.houseRent + auto.medicalAllowance + auto.conveyanceAllowance + auto.foodAllowance
         }
 
-        val grossSalary = if (profile.basicSalary > 0.0) profile.basicSalary + allowances else 0.0
-        val attendanceBonus = if (profile.basicSalary > 0.0 && absentDays == 0) profile.attendanceBonus else 0.0
+        val grossSalary = if (monthSnapshot != null && monthSnapshot.grossSalary > 0.0) {
+            monthSnapshot.grossSalary
+        } else if (baseBasic > 0.0) {
+            baseBasic + allowances
+        } else {
+            0.0
+        }
+
+        val maxAbsentConfig = if (monthSnapshot != null && monthSnapshot.maxAbsentForBonus > 0) monthSnapshot.maxAbsentForBonus else profile.maxAbsentForBonus
+        val absentThreshold = maxAbsentConfig.coerceAtLeast(1)
+        val bonusRate = if (monthSnapshot != null && monthSnapshot.attendanceBonus > 0.0) monthSnapshot.attendanceBonus else profile.attendanceBonus
+        val attendanceBonus = if (baseBasic > 0.0 && absentDays < absentThreshold) bonusRate else 0.0
         
-        // Labor law absent deduction: daily gross rate = grossSalary / 30
-        val absentDeduction = if (grossSalary > 0.0 && absentDays > 0) {
-            (grossSalary / 30.0) * absentDays
+        // Labor law absent deduction: calculated from month's basic salary (Basic / 30)
+        val dailyAbsentRate = if (baseBasic > 0.0) baseBasic / 30.0 else 0.0
+        val absentDeduction = if (dailyAbsentRate > 0.0 && absentDays > 0) {
+            dailyAbsentRate * absentDays
         } else {
             0.0
         }
@@ -156,6 +194,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             allowances = allowances,
             grossSalary = grossSalary,
             attendanceBonus = attendanceBonus,
+            dailyAbsentRate = dailyAbsentRate,
             absentDeduction = absentDeduction,
             totalEstimatedEarnings = totalEstimatedEarnings,
             targetHours = targetHours,
@@ -203,9 +242,47 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun acceptPrivacyPolicy() {
+        viewModelScope.launch {
+            val current = userProfile.value
+            val now = System.currentTimeMillis()
+            val updated = current.copy(
+                hasAcceptedPrivacyPolicy = true,
+                privacyPolicyAcceptedAt = now
+            )
+            repository.saveProfile(updated)
+        }
+    }
+
     fun updateProfile(updated: UserProfile) {
         viewModelScope.launch {
             repository.saveProfile(updated)
+            // Save or update current selected month salary snapshot with the new salary
+            val ym = _selectedYearMonth.value
+            val otRate = LaborLawCalculator.getHourlyOtRate(updated)
+            val allowances = if (updated.isCustomSalary) {
+                updated.houseRent + updated.medicalAllowance + updated.conveyanceAllowance + updated.foodAllowance
+            } else {
+                val auto = LaborLawCalculator.calculateAutoAllowances(updated.basicSalary)
+                auto.houseRent + auto.medicalAllowance + auto.conveyanceAllowance + auto.foodAllowance
+            }
+            val gross = if (updated.basicSalary > 0.0) updated.basicSalary + allowances else 0.0
+            val snapshot = com.example.data.model.MonthlySalarySettings(
+                yearMonth = ym,
+                basicSalary = updated.basicSalary,
+                houseRent = updated.houseRent,
+                medicalAllowance = updated.medicalAllowance,
+                conveyanceAllowance = updated.conveyanceAllowance,
+                foodAllowance = updated.foodAllowance,
+                grossSalary = gross,
+                hourlyOtRate = otRate,
+                attendanceBonus = updated.attendanceBonus,
+                maxAbsentForBonus = updated.maxAbsentForBonus,
+                nightBillRate = updated.nightBillRate,
+                tiffinBillRate = updated.tiffinBillRate,
+                isCustomSalary = updated.isCustomSalary
+            )
+            repository.saveMonthlySalarySettings(snapshot)
         }
     }
 
@@ -222,7 +299,42 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val ym = if (date.length >= 7) date.substring(0, 7) else _selectedYearMonth.value
             val profile = userProfile.value
-            val rate = LaborLawCalculator.getHourlyOtRate(profile)
+            
+            // If month already has a saved salary snapshot, prioritize that month's rate; otherwise use current profile rate
+            val existingMonthSettings = repository.getMonthlySalarySettingsOnce(ym)
+            val effectiveRate = if (existingMonthSettings != null && existingMonthSettings.hourlyOtRate > 0.0) {
+                existingMonthSettings.hourlyOtRate
+            } else {
+                LaborLawCalculator.getHourlyOtRate(profile)
+            }
+
+            // Ensure a snapshot for this month exists so future salary changes don't alter it
+            if (existingMonthSettings == null && profile.basicSalary > 0.0) {
+                val allowances = if (profile.isCustomSalary) {
+                    profile.houseRent + profile.medicalAllowance + profile.conveyanceAllowance + profile.foodAllowance
+                } else {
+                    val auto = LaborLawCalculator.calculateAutoAllowances(profile.basicSalary)
+                    auto.houseRent + auto.medicalAllowance + auto.conveyanceAllowance + auto.foodAllowance
+                }
+                val gross = profile.basicSalary + allowances
+                val snapshot = com.example.data.model.MonthlySalarySettings(
+                    yearMonth = ym,
+                    basicSalary = profile.basicSalary,
+                    houseRent = profile.houseRent,
+                    medicalAllowance = profile.medicalAllowance,
+                    conveyanceAllowance = profile.conveyanceAllowance,
+                    foodAllowance = profile.foodAllowance,
+                    grossSalary = gross,
+                    hourlyOtRate = effectiveRate,
+                    attendanceBonus = profile.attendanceBonus,
+                    maxAbsentForBonus = profile.maxAbsentForBonus,
+                    nightBillRate = profile.nightBillRate,
+                    tiffinBillRate = profile.tiffinBillRate,
+                    isCustomSalary = profile.isCustomSalary
+                )
+                repository.saveMonthlySalarySettings(snapshot)
+            }
+
             val record = OvertimeRecord(
                 id = id,
                 date = date,
@@ -233,8 +345,8 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
                 isHoliday = isHoliday,
                 shiftType = shiftType,
                 note = note,
-                hourlyRateSnapshot = rate,
-                calculatedAmount = otHours * rate
+                hourlyRateSnapshot = effectiveRate,
+                calculatedAmount = otHours * effectiveRate
             )
             repository.insertOrUpdateOvertime(record)
         }
@@ -335,6 +447,7 @@ data class MonthlySummaryState(
     val allowances: Double = 0.0,
     val grossSalary: Double = 0.0,
     val attendanceBonus: Double = 0.0,
+    val dailyAbsentRate: Double = 0.0,
     val absentDeduction: Double = 0.0,
     val totalEstimatedEarnings: Double = 0.0,
     val targetHours: Double = 0.0,

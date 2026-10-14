@@ -27,6 +27,7 @@ class OvertimeRepository(private val database: AppDatabase) {
     private val overtimeDao = database.overtimeDao()
     private val pieceRateDao = database.pieceRateDao()
     private val userProfileDao = database.userProfileDao()
+    private val monthlySalaryDao = database.monthlySalaryDao()
 
     private val auth: FirebaseAuth get() = FirebaseAuth.getInstance()
     private val firestore: FirebaseFirestore get() = FirebaseFirestore.getInstance()
@@ -82,6 +83,18 @@ class OvertimeRepository(private val database: AppDatabase) {
         syncScope.launch {
             autoSyncProfileToCloud(profile)
         }
+    }
+
+    fun getMonthlySalarySettings(yearMonth: String): Flow<com.example.data.model.MonthlySalarySettings?> {
+        return monthlySalaryDao.getSettingsForMonth(yearMonth)
+    }
+
+    suspend fun getMonthlySalarySettingsOnce(yearMonth: String): com.example.data.model.MonthlySalarySettings? {
+        return monthlySalaryDao.getSettingsForMonthOnce(yearMonth)
+    }
+
+    suspend fun saveMonthlySalarySettings(settings: com.example.data.model.MonthlySalarySettings) {
+        monthlySalaryDao.insertOrUpdate(settings)
     }
 
     // Overtime
@@ -317,6 +330,7 @@ class OvertimeRepository(private val database: AppDatabase) {
                     val cloudCustomOt = getDoubleFromField(data["customOtRate"])
                     val cloudTargetHours = getDoubleFromField(data["monthlyOtTargetHours"])
                     val cloudIsCustom = getBooleanFromField(data["isCustomSalary"])
+                    val cloudMaxAbsent = ((data["maxAbsentForBonus"] as? Number)?.toInt() ?: 1).coerceAtLeast(1)
                     val cloudWhatsapp = (data["supportWhatsapp"] as? String)?.trim() ?: ""
                     val cloudLang = (data["language"] as? String)?.trim() ?: "bn"
                     val cloudSyncTime = (data["lastSyncTime"] as? Number)?.toLong() ?: 0L
@@ -354,6 +368,7 @@ class OvertimeRepository(private val database: AppDatabase) {
                             conveyanceAllowance = if (cloudConveyance > 0.0) cloudConveyance else currentProfile.conveyanceAllowance,
                             foodAllowance = if (cloudFood > 0.0) cloudFood else currentProfile.foodAllowance,
                             attendanceBonus = if (cloudAttendanceBonus > 0.0) cloudAttendanceBonus else currentProfile.attendanceBonus,
+                            maxAbsentForBonus = if (cloudMaxAbsent > 0) cloudMaxAbsent else currentProfile.maxAbsentForBonus,
                             nightBillRate = if (cloudNightBill > 0.0) cloudNightBill else currentProfile.nightBillRate,
                             tiffinBillRate = if (cloudTiffinBill > 0.0) cloudTiffinBill else currentProfile.tiffinBillRate,
                             customOtRate = if (cloudCustomOt > 0.0) cloudCustomOt else currentProfile.customOtRate,
@@ -466,12 +481,21 @@ class OvertimeRepository(private val database: AppDatabase) {
             "conveyanceAllowance" to profile.conveyanceAllowance,
             "foodAllowance" to profile.foodAllowance,
             "attendanceBonus" to profile.attendanceBonus,
+            "maxAbsentForBonus" to profile.maxAbsentForBonus,
             "nightBillRate" to profile.nightBillRate,
             "tiffinBillRate" to profile.tiffinBillRate,
             "customOtRate" to profile.customOtRate,
             "monthlyOtTargetHours" to profile.monthlyOtTargetHours,
             "language" to profile.language,
             "supportWhatsapp" to profile.supportWhatsapp,
+            "hasAcceptedPrivacyPolicy" to profile.hasAcceptedPrivacyPolicy,
+            "privacyPolicyAcceptedAt" to profile.privacyPolicyAcceptedAt,
+            "consentAudit" to hashMapOf<String, Any>(
+                "isConsentGiven" to profile.hasAcceptedPrivacyPolicy,
+                "consentTimestamp" to (if (profile.privacyPolicyAcceptedAt > 0L) profile.privacyPolicyAcceptedAt else System.currentTimeMillis()),
+                "policyVersion" to "1.0.5",
+                "consentDeclaration" to "User agreed to Terms and Privacy Policy before storing salary and overtime data in Firestore."
+            ),
             "lastSyncTime" to (if (profile.lastCloudSyncTime > 0) profile.lastCloudSyncTime else System.currentTimeMillis())
         )
         return map

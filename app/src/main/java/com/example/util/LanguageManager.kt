@@ -14,7 +14,7 @@ object LanguageManager {
     }
 
     private val bnDict = mapOf(
-        "app_title" to "ওভারটাইম বিডি (Overtime BD)",
+        "app_title" to "ওভারটাইম ট্র্যাকার বিডি (Overtime Tracker BD)",
         "tab_home" to "হোম",
         "tab_ot_list" to "ওটি খাতা",
         "tab_piece_rate" to "পিস রেট ও স্লিপ",
@@ -76,7 +76,7 @@ object LanguageManager {
     )
 
     private val enDict = mapOf(
-        "app_title" to "Overtime BD",
+        "app_title" to "Overtime Tracker BD",
         "tab_home" to "Home",
         "tab_ot_list" to "OT List",
         "tab_piece_rate" to "Piece & Slip",

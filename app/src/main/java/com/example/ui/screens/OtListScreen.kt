@@ -29,6 +29,7 @@ fun OtListScreen(
     selectedMonth: String,
     records: List<OvertimeRecord>,
     hourlyRate: Double,
+    dailyAbsentRate: Double = 0.0,
     lang: String,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -169,16 +170,39 @@ fun OtListScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val isAbsent = record.shiftType == "ABSENT"
+                                    val isLeave = record.shiftType == "LEAVE"
+                                    val isWeeklyOff = record.shiftType == "WEEKLY_OFF"
+
+                                    val badgeBg = when {
+                                        isAbsent -> MaterialTheme.colorScheme.errorContainer
+                                        isLeave || isWeeklyOff -> MaterialTheme.colorScheme.secondaryContainer
+                                        record.isHoliday -> MaterialTheme.colorScheme.tertiaryContainer
+                                        else -> MaterialTheme.colorScheme.primaryContainer
+                                    }
+                                    val badgeTextColor = when {
+                                        isAbsent -> MaterialTheme.colorScheme.onErrorContainer
+                                        isLeave || isWeeklyOff -> MaterialTheme.colorScheme.onSecondaryContainer
+                                        record.isHoliday -> MaterialTheme.colorScheme.onTertiaryContainer
+                                        else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                    }
+                                    val badgeText = when {
+                                        isAbsent -> if (isBn) "অনুপস্থিত" else "Absent"
+                                        isLeave -> if (isBn) "ছুটি" else "Leave"
+                                        isWeeklyOff -> if (isBn) "সাপ্তাহিক ছুটি" else "Off Day"
+                                        else -> "${LaborLawCalculator.formatNumber(record.otHours, isBn)} ঘণ্টা"
+                                    }
+
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
-                                        color = if (record.isHoliday) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer,
+                                        color = badgeBg,
                                         modifier = Modifier.padding(end = 10.dp)
                                     ) {
                                         Text(
-                                            text = "${LaborLawCalculator.formatNumber(record.otHours, isBn)} ঘণ্টা",
+                                            text = badgeText,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = if (record.isHoliday) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                            fontSize = if (isAbsent || isLeave || isWeeklyOff) 12.sp else 14.sp,
+                                            color = badgeTextColor,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                                         )
                                     }
@@ -199,12 +223,27 @@ fun OtListScreen(
                                     }
                                 }
 
-                                Text(
-                                    text = LaborLawCalculator.formatCurrency(record.otHours * hourlyRate, isBn),
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                if (record.shiftType == "ABSENT") {
+                                    val deductionText = if (dailyAbsentRate > 0.0) {
+                                        "- " + LaborLawCalculator.formatCurrency(dailyAbsentRate, isBn)
+                                    } else {
+                                        if (isBn) "- বেতন কর্তন" else "- Deduction"
+                                    }
+                                    Text(
+                                        text = deductionText,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                } else {
+                                    val itemRate = if (record.hourlyRateSnapshot > 0.0) record.hourlyRateSnapshot else hourlyRate
+                                    Text(
+                                        text = LaborLawCalculator.formatCurrency(record.otHours * itemRate, isBn),
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))

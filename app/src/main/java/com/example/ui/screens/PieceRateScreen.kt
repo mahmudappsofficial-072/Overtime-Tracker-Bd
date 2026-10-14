@@ -329,10 +329,12 @@ fun PieceRateScreen(
                                 SlipRow("চিকিৎসা ভাতা (Medical)", LaborLawCalculator.formatCurrency(profile.medicalAllowance, isBn))
                                 SlipRow("যাতায়াত ভাতা (Conveyance)", LaborLawCalculator.formatCurrency(profile.conveyanceAllowance, isBn))
                                 SlipRow("খাদ্য ভাতা (Food Allowance)", LaborLawCalculator.formatCurrency(profile.foodAllowance, isBn))
-                                val attendanceLabel = if (summary.absentDays > 0) {
+                                val attendanceLabel = if (summary.attendanceBonus > 0) {
+                                    "হাজিরা বোনাস (উপস্থিতি সন্তোষজনক)"
+                                } else if (summary.absentDays > 0) {
                                     "হাজিরা বোনাস (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন অনুপস্থিতির কারণে কর্তন)"
                                 } else {
-                                    "হাজিরা বোনাস (উপস্থিতি সন্তোষজনক)"
+                                    "হাজিরা বোনাস"
                                 }
                                 SlipRow(attendanceLabel, LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn))
 
@@ -439,7 +441,7 @@ fun PieceRateScreen(
                                     🎯 হাজিরা বোনাস: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                    ❌ অনুপস্থিতি কর্তন (${summary.absentDays} দিন): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}
                                     -------------------------------
                                     ✅ *মোট প্রদেয় বেতন:* ${LaborLawCalculator.formatCurrency(summary.totalEstimatedEarnings, isBn)}
-                                    _ওভারটাইম বিডি অ্যাপ দ্বারা প্রস্তুতকৃত_
+                                    _ওভারটাইম ট্র্যাকার বিডি অ্যাপ দ্বারা প্রস্তুতকৃত_
                                 """.trimIndent()
 
                                 val sendIntent = Intent().apply {

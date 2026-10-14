@@ -89,6 +89,9 @@ fun ProfileScreen(
     var attendanceBonusText by remember(profile) {
         mutableStateOf(if (profile.attendanceBonus == 0.0) "0" else profile.attendanceBonus.toInt().toString())
     }
+    var maxAbsentForBonusText by remember(profile) {
+        mutableStateOf(profile.maxAbsentForBonus.coerceAtLeast(1).toString())
+    }
     var nightBillRateText by remember(profile) {
         mutableStateOf(if (profile.nightBillRate == 0.0) "0" else profile.nightBillRate.toInt().toString())
     }
@@ -685,6 +688,29 @@ fun ProfileScreen(
                         singleLine = true
                     )
 
+                    OutlinedTextField(
+                        value = maxAbsentForBonusText,
+                        onValueChange = { input ->
+                            // Allow digits only
+                            if (input.all { it.isDigit() }) {
+                                maxAbsentForBonusText = input
+                            }
+                        },
+                        label = { Text("হাজিরা বোনাস কাটার শর্ত (অনুপস্থিতির দিন)") },
+                        modifier = Modifier.fillMaxWidth().testTag("max_absent_bonus_input"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        supportingText = {
+                            Text(
+                                text = "আপনার অফিসের নিয়মানুযায়ী লিখুন (যেমন: ১ বা ৩ দিন)। যত দিন লিখবেন তার চেয়ে কম অনুপস্থিত থাকলে বোনাস মিলবে (ডিফল্ট: ১ দিন)।",
+                                fontSize = 11.sp
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    )
+
                     // Custom OT Rate if in custom mode
                     if (isCustomSalary) {
                         OutlinedTextField(
@@ -763,6 +789,7 @@ fun ProfileScreen(
                     val conveyance = if (isCustomSalary) (conveyanceText.toDoubleOrNull() ?: 0.0) else autoResult.conveyanceAllowance
                     val food = if (isCustomSalary) (foodText.toDoubleOrNull() ?: 0.0) else autoResult.foodAllowance
                     val attendance = attendanceBonusText.toDoubleOrNull() ?: 0.0
+                    val maxAbsentThreshold = (maxAbsentForBonusText.toIntOrNull() ?: 1).coerceAtLeast(1)
                     val night = nightBillRateText.toDoubleOrNull() ?: 0.0
                     val tiffin = tiffinBillRateText.toDoubleOrNull() ?: 0.0
                     val customOt = customOtRateText.toDoubleOrNull() ?: 0.0
@@ -780,6 +807,7 @@ fun ProfileScreen(
                         conveyanceAllowance = conveyance,
                         foodAllowance = food,
                         attendanceBonus = attendance,
+                        maxAbsentForBonus = maxAbsentThreshold,
                         nightBillRate = night,
                         tiffinBillRate = tiffin,
                         customOtRate = customOt,
