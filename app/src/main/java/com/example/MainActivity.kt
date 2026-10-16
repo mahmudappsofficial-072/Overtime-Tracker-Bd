@@ -180,6 +180,7 @@ fun OvertimeApp(viewModel: OvertimeViewModel = viewModel()) {
                     records = otRecords,
                     hourlyRate = summary.hourlyOtRate,
                     dailyAbsentRate = summary.dailyAbsentRate,
+                    attendanceBonus = summary.attendanceBonus,
                     lang = lang,
                     onPreviousMonth = { viewModel.previousMonth() },
                     onNextMonth = { viewModel.nextMonth() },

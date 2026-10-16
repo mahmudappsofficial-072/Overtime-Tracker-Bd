@@ -90,7 +90,7 @@ fun ProfileScreen(
         mutableStateOf(if (profile.attendanceBonus == 0.0) "0" else profile.attendanceBonus.toInt().toString())
     }
     var maxAbsentForBonusText by remember(profile) {
-        mutableStateOf(profile.maxAbsentForBonus.coerceAtLeast(1).toString())
+        mutableStateOf(if (profile.maxAbsentForBonus <= 0) "0" else profile.maxAbsentForBonus.toString())
     }
     var nightBillRateText by remember(profile) {
         mutableStateOf(if (profile.nightBillRate == 0.0) "0" else profile.nightBillRate.toInt().toString())
@@ -702,7 +702,7 @@ fun ProfileScreen(
                         singleLine = true,
                         supportingText = {
                             Text(
-                                text = "আপনার অফিসের নিয়মানুযায়ী লিখুন (যেমন: ১ বা ৩ দিন)। যত দিন লিখবেন তার চেয়ে কম অনুপস্থিত থাকলে বোনাস মিলবে (ডিফল্ট: ১ দিন)।",
+                                text = "আপনার অফিসের নিয়মানুযায়ী লিখুন (যেমন: ৩ দিন দিলে ৩ দিন পর্যন্ত বোনাস অক্ষত থাকবে, ৪র্থ দিন থেকে বাতিল হবে)।",
                                 fontSize = 11.sp
                             )
                         },
@@ -789,7 +789,7 @@ fun ProfileScreen(
                     val conveyance = if (isCustomSalary) (conveyanceText.toDoubleOrNull() ?: 0.0) else autoResult.conveyanceAllowance
                     val food = if (isCustomSalary) (foodText.toDoubleOrNull() ?: 0.0) else autoResult.foodAllowance
                     val attendance = attendanceBonusText.toDoubleOrNull() ?: 0.0
-                    val maxAbsentThreshold = (maxAbsentForBonusText.toIntOrNull() ?: 1).coerceAtLeast(1)
+                    val maxAbsentThreshold = (maxAbsentForBonusText.toIntOrNull() ?: 0).coerceAtLeast(0)
                     val night = nightBillRateText.toDoubleOrNull() ?: 0.0
                     val tiffin = tiffinBillRateText.toDoubleOrNull() ?: 0.0
                     val customOt = customOtRateText.toDoubleOrNull() ?: 0.0

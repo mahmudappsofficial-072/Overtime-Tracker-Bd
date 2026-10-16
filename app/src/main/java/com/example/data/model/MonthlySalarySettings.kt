@@ -15,7 +15,7 @@ data class MonthlySalarySettings(
     val grossSalary: Double = 0.0,
     val hourlyOtRate: Double = 0.0,
     val attendanceBonus: Double = 0.0,
-    val maxAbsentForBonus: Int = 1,
+    val maxAbsentForBonus: Int = 0,
     val nightBillRate: Double = 0.0,
     val tiffinBillRate: Double = 0.0,
     val isCustomSalary: Boolean = false,

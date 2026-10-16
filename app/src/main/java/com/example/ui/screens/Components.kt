@@ -409,9 +409,9 @@ fun QuickOtEntryDialog(
                         Text(
                             text = when (selectedShift) {
                                 ShiftType.ABSENT.code -> if (isBn)
-                                    "⚠️ আজকের দিনটি অনুপস্থিত হিসেবে রেকর্ড হবে (হাজিরা বোনাস বাতিল ও ১ দিনের বেতন কর্তন হবে)।"
+                                    "⚠️ আজকের দিনটি অনুপস্থিত হিসেবে রেকর্ড হবে (দৈনিক বেতন কর্তন হবে এবং শর্তানুযায়ী হাজিরা বোনাস হিসাব হবে)।"
                                 else
-                                    "⚠️ Marked as Absent (Attendance bonus forfeited & 1 day salary deducted)."
+                                    "⚠️ Marked as Absent (Daily salary deducted; attendance bonus evaluated per policy)."
                                 ShiftType.LEAVE.code -> if (isBn)
                                     "🏖️ আজকের দিনটি ছুটি হিসেবে গণ্য হবে (হাজিরা কাটা যাবে না)।"
                                 else

@@ -98,7 +98,14 @@ object PdfSlipGenerator {
         paint.textSize = 11f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         canvas.drawText("ছুটি / সাপ্তাহিক ছুটি: ${summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays} দিন", 56f, y, paint)
-        canvas.drawText("অনুপস্থিত: ${summary.absentDays} দিন ${if (summary.absentDays > 0) "(হাজিরা বোনাস কর্তন)" else "(হাজিরা বোনাস অর্জিত)"}", 320f, y, paint)
+        val bonusStatusText = if (summary.attendanceBonus > 0) {
+            "(হাজিরা বোনাস অর্জিত)"
+        } else if (summary.absentDays > 0) {
+            "(হাজিরা বোনাস কর্তন)"
+        } else {
+            ""
+        }
+        canvas.drawText("অনুপস্থিত: ${summary.absentDays} দিন $bonusStatusText", 320f, y, paint)
         y += 28f
 
         // Divider
@@ -131,8 +138,15 @@ object PdfSlipGenerator {
         drawPdfRow("চিকিৎসা ভাতা (Medical Allowance)", profile.medicalAllowance)
         drawPdfRow("যাতায়াত ভাতা (Conveyance)", profile.conveyanceAllowance)
         drawPdfRow("খাদ্য ভাতা (Food Allowance)", profile.foodAllowance)
+        val attendanceLabel = if (summary.attendanceBonus > 0) {
+            if (summary.absentDays > 0) "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতি অনুমোদিত)" else "হাজিরা বোনাস (নিয়মিত উপস্থিতি)"
+        } else if (summary.absentDays > 0) {
+            "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতির জন্য বাতিল)"
+        } else {
+            "হাজিরা বোনাস"
+        }
         drawPdfRow(
-            if (summary.absentDays > 0) "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতির জন্য কর্তন)" else "হাজিরা বোনাস (নিয়মিত উপস্থিতি)",
+            attendanceLabel,
             summary.attendanceBonus
         )
 

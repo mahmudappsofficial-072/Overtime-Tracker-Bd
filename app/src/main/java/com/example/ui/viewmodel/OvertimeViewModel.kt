@@ -163,10 +163,9 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             0.0
         }
 
-        val maxAbsentConfig = if (monthSnapshot != null && monthSnapshot.maxAbsentForBonus > 0) monthSnapshot.maxAbsentForBonus else profile.maxAbsentForBonus
-        val absentThreshold = maxAbsentConfig.coerceAtLeast(1)
+        val allowedAbsents = if (monthSnapshot != null) monthSnapshot.maxAbsentForBonus else profile.maxAbsentForBonus
         val bonusRate = if (monthSnapshot != null && monthSnapshot.attendanceBonus > 0.0) monthSnapshot.attendanceBonus else profile.attendanceBonus
-        val attendanceBonus = if (baseBasic > 0.0 && absentDays < absentThreshold) bonusRate else 0.0
+        val attendanceBonus = if (baseBasic > 0.0 && absentDays <= allowedAbsents) bonusRate else 0.0
         
         // Labor law absent deduction: calculated from month's basic salary (Basic / 30)
         val dailyAbsentRate = if (baseBasic > 0.0) baseBasic / 30.0 else 0.0
@@ -257,8 +256,9 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
     fun updateProfile(updated: UserProfile) {
         viewModelScope.launch {
             repository.saveProfile(updated)
-            // Save or update current selected month salary snapshot with the new salary
-            val ym = _selectedYearMonth.value
+            val currentCalendarYm = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
+            // Only update selected month if it is current or future; never overwrite past months
+            val ym = if (_selectedYearMonth.value >= currentCalendarYm) _selectedYearMonth.value else currentCalendarYm
             val otRate = LaborLawCalculator.getHourlyOtRate(updated)
             val allowances = if (updated.isCustomSalary) {
                 updated.houseRent + updated.medicalAllowance + updated.conveyanceAllowance + updated.foodAllowance

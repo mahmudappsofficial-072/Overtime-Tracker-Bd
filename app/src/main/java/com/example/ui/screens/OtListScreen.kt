@@ -30,6 +30,7 @@ fun OtListScreen(
     records: List<OvertimeRecord>,
     hourlyRate: Double,
     dailyAbsentRate: Double = 0.0,
+    attendanceBonus: Double = 0.0,
     lang: String,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -112,10 +113,11 @@ fun OtListScreen(
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("হাজিরা বোনাস", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                val isBonusEarned = attendanceBonus > 0
                                 Text(
-                                    text = if (absentCount == 0) "অর্জিত ✅" else "কর্তন ❌",
+                                    text = if (isBonusEarned) "অর্জিত ✅" else if (absentCount > 0) "কর্তন ❌" else "০",
                                     fontWeight = FontWeight.Bold,
-                                    color = if (absentCount == 0) SuccessGreen else MaterialTheme.colorScheme.error
+                                    color = if (isBonusEarned) SuccessGreen else if (absentCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

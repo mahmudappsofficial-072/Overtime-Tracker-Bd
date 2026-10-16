@@ -330,7 +330,7 @@ class OvertimeRepository(private val database: AppDatabase) {
                     val cloudCustomOt = getDoubleFromField(data["customOtRate"])
                     val cloudTargetHours = getDoubleFromField(data["monthlyOtTargetHours"])
                     val cloudIsCustom = getBooleanFromField(data["isCustomSalary"])
-                    val cloudMaxAbsent = ((data["maxAbsentForBonus"] as? Number)?.toInt() ?: 1).coerceAtLeast(1)
+                    val cloudMaxAbsent = ((data["maxAbsentForBonus"] as? Number)?.toInt() ?: 0).coerceAtLeast(0)
                     val cloudWhatsapp = (data["supportWhatsapp"] as? String)?.trim() ?: ""
                     val cloudLang = (data["language"] as? String)?.trim() ?: "bn"
                     val cloudSyncTime = (data["lastSyncTime"] as? Number)?.toLong() ?: 0L
@@ -368,7 +368,7 @@ class OvertimeRepository(private val database: AppDatabase) {
                             conveyanceAllowance = if (cloudConveyance > 0.0) cloudConveyance else currentProfile.conveyanceAllowance,
                             foodAllowance = if (cloudFood > 0.0) cloudFood else currentProfile.foodAllowance,
                             attendanceBonus = if (cloudAttendanceBonus > 0.0) cloudAttendanceBonus else currentProfile.attendanceBonus,
-                            maxAbsentForBonus = if (cloudMaxAbsent > 0) cloudMaxAbsent else currentProfile.maxAbsentForBonus,
+                            maxAbsentForBonus = if (data.containsKey("maxAbsentForBonus")) cloudMaxAbsent else currentProfile.maxAbsentForBonus,
                             nightBillRate = if (cloudNightBill > 0.0) cloudNightBill else currentProfile.nightBillRate,
                             tiffinBillRate = if (cloudTiffinBill > 0.0) cloudTiffinBill else currentProfile.tiffinBillRate,
                             customOtRate = if (cloudCustomOt > 0.0) cloudCustomOt else currentProfile.customOtRate,

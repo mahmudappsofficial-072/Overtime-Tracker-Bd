@@ -19,7 +19,7 @@ data class UserProfile(
     val conveyanceAllowance: Double = 0.0,
     val foodAllowance: Double = 0.0,
     val attendanceBonus: Double = 0.0,
-    val maxAbsentForBonus: Int = 1, // Number of absent days that triggers attendance bonus cancellation (Default: 1)
+    val maxAbsentForBonus: Int = 0, // Number of absent days allowed without bonus penalty
     val nightBillRate: Double = 0.0,
     val tiffinBillRate: Double = 0.0,
     val customOtRate: Double = 0.0,

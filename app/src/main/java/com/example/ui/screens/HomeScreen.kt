@@ -443,6 +443,7 @@ fun HomeScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
+                            val isBonusEarned = summary.attendanceBonus > 0
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -450,10 +451,10 @@ fun HomeScreen(
                             ) {
                                 Text("হাজিরা বোনাস", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
-                                    text = if (summary.absentDays == 0) "অর্জিত" else "কর্তন",
+                                    text = if (isBonusEarned) "অর্জিত" else if (summary.absentDays > 0) "বাতিল" else "০",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (summary.absentDays == 0) SuccessGreen else MaterialTheme.colorScheme.error
+                                    color = if (isBonusEarned) SuccessGreen else if (summary.absentDays > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Spacer(modifier = Modifier.height(2.dp))
@@ -461,7 +462,7 @@ fun HomeScreen(
                                 text = LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
-                                color = if (summary.absentDays == 0) SuccessGreen else MaterialTheme.colorScheme.error
+                                color = if (isBonusEarned) SuccessGreen else if (summary.absentDays > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
