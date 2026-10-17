@@ -86,7 +86,7 @@ fun ProfessionalDatePickerField(
                     Calendar.FRIDAY -> if (isBn) "শুক্রবার" else "Friday"
                     else -> ""
                 }
-                val formatted = SimpleDateFormat("dd MMMM yyyy", if (isBn) Locale("bn", "BD") else Locale.US).format(parsed)
+                val formatted = SimpleDateFormat("dd MMMM yyyy", if (isBn) Locale.forLanguageTag("bn-BD") else Locale.US).format(parsed)
                 val display = if (isBn) LaborLawCalculator.toBengaliDigits(formatted) else formatted
                 val suffix = when (selectedDate) {
                     todayDateStr -> if (isBn) " • আজকের দিন" else " • Today"

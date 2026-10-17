@@ -393,7 +393,7 @@ fun ProfileScreen(
                         }
                     }
 
-                    Divider()
+                    HorizontalDivider()
 
                     // Editable Personal Info
                     OutlinedTextField(

@@ -74,7 +74,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "overtime_bd_database"
                 )
                     .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(true)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)

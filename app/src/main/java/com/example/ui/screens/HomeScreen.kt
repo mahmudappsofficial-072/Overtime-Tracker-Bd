@@ -218,7 +218,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
 
-                        Divider(color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
 
                         // 3 Key Stats
                         Row(

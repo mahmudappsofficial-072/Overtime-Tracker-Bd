@@ -273,7 +273,7 @@ fun PieceRateScreen(
                                     )
                                 }
 
-                                Divider()
+                                HorizontalDivider()
 
                                 // Employee Meta
                                 Row(
@@ -290,7 +290,7 @@ fun PieceRateScreen(
                                     }
                                 }
 
-                                Divider()
+                                HorizontalDivider()
 
                                 // Attendance & Shift Summary
                                 Text(
@@ -315,7 +315,7 @@ fun PieceRateScreen(
                                     Text("অনুপস্থিত: ${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন", fontSize = 12.sp, color = if (summary.absentDays > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                                 }
 
-                                Divider()
+                                HorizontalDivider()
 
                                 // Earnings Breakdown Table
                                 Text(
@@ -342,7 +342,7 @@ fun PieceRateScreen(
                                 }
                                 SlipRow(attendanceLabel, LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn))
 
-                                Divider()
+                                HorizontalDivider()
 
                                 Text(
                                     text = "অতিরিক্ত আয় (Overtime & Others):",
@@ -370,7 +370,7 @@ fun PieceRateScreen(
                                     )
                                 }
 
-                                Divider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
+                                HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary)
 
                                 // Total Net Payable - Compact Single Line
                                 Row(

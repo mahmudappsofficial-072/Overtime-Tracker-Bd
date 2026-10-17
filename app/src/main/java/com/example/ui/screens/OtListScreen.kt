@@ -91,7 +91,7 @@ fun OtListScreen(
                             }
                         }
 
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                         // Monthly Summary Stats in List
                         val absentCount = records.count { it.shiftType == "ABSENT" }
