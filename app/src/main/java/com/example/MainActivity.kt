@@ -91,7 +91,6 @@ fun OvertimeApp(
         com.example.receiver.ReminderScheduler.scheduleDailyReminders(context)
         try {
             com.example.receiver.MyFirebaseMessagingService.createFcmChannel(context)
-            com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("all_users")
         } catch (_: Exception) {}
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {

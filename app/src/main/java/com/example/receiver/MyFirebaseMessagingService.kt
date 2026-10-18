@@ -22,10 +22,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "Refreshed token: $token")
-        // Automatically ensure device is subscribed to all_users topic
-        try {
-            FirebaseMessaging.getInstance().subscribeToTopic("all_users")
-        } catch (_: Exception) {}
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
