@@ -1,5 +1,6 @@
 package com.example
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -24,19 +25,40 @@ import com.example.ui.viewmodel.OvertimeViewModel
 import com.example.util.LanguageManager
 
 class MainActivity : ComponentActivity() {
+
+    private val openQuickOtTrigger = androidx.compose.runtime.mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent?.getBooleanExtra("OPEN_QUICK_OT", false) == true) {
+            openQuickOtTrigger.value = true
+        }
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
-                OvertimeApp()
+                OvertimeApp(
+                    openQuickOtTrigger = openQuickOtTrigger.value,
+                    onResetQuickOtTrigger = { openQuickOtTrigger.value = false }
+                )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra("OPEN_QUICK_OT", false)) {
+            openQuickOtTrigger.value = true
         }
     }
 }
 
 @Composable
-fun OvertimeApp(viewModel: OvertimeViewModel = viewModel()) {
+fun OvertimeApp(
+    viewModel: OvertimeViewModel = viewModel(),
+    openQuickOtTrigger: Boolean = false,
+    onResetQuickOtTrigger: () -> Unit = {}
+) {
     var currentTab by remember { mutableIntStateOf(0) } // 0: Home, 1: OT List, 2: Piece & Slip, 3: Profile
 
     // Back handling: Return to Home if on secondary tab
@@ -56,8 +78,43 @@ fun OvertimeApp(viewModel: OvertimeViewModel = viewModel()) {
 
     val lang = profile.language
 
+    // Notification permission launcher for Android 13+ (API 33+)
+    val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            com.example.receiver.ReminderScheduler.scheduleDailyReminders(context)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        com.example.receiver.ReminderScheduler.scheduleDailyReminders(context)
+        try {
+            com.example.receiver.MyFirebaseMessagingService.createFcmChannel(context)
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("all_users")
+        } catch (_: Exception) {}
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!hasPermission) {
+                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
     // Dialog States
     var showQuickOtDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(openQuickOtTrigger) {
+        if (openQuickOtTrigger) {
+            currentTab = 0
+            showQuickOtDialog = true
+            onResetQuickOtTrigger()
+        }
+    }
     var recordToEdit by remember { mutableStateOf<OvertimeRecord?>(null) }
     var showPieceDialog by remember { mutableStateOf(false) }
     var showTargetDialog by remember { mutableStateOf(false) }
