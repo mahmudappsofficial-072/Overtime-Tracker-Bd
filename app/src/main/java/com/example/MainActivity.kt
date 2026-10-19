@@ -71,6 +71,7 @@ fun OvertimeApp(
     val otRecords by viewModel.monthlyOtRecords.collectAsStateWithLifecycle()
     val pieceRecords by viewModel.monthlyPieceRecords.collectAsStateWithLifecycle()
     val summary by viewModel.monthlySummary.collectAsStateWithLifecycle()
+    val trashItems by viewModel.trashItems.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val isAuthLoading by viewModel.isAuthLoading.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -106,12 +107,28 @@ fun OvertimeApp(
 
     // Dialog States
     var showQuickOtDialog by remember { mutableStateOf(false) }
+    var hasCheckedMissingOtThisSession by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var showMissingOtDialog by remember { mutableStateOf(false) }
+    var missingOtDates by remember { mutableStateOf<List<String>>(emptyList()) }
 
     LaunchedEffect(openQuickOtTrigger) {
         if (openQuickOtTrigger) {
             currentTab = 0
             showQuickOtDialog = true
+            hasCheckedMissingOtThisSession = true
             onResetQuickOtTrigger()
+        }
+    }
+
+    LaunchedEffect(otRecords, openQuickOtTrigger) {
+        if (!hasCheckedMissingOtThisSession && !openQuickOtTrigger) {
+            kotlinx.coroutines.delay(350)
+            val missing = MissingOtDetector.getMissingDatesForCurrentMonth(otRecords)
+            if (missing.isNotEmpty()) {
+                missingOtDates = missing
+                showMissingOtDialog = true
+            }
+            hasCheckedMissingOtThisSession = true
         }
     }
     var recordToEdit by remember { mutableStateOf<OvertimeRecord?>(null) }
@@ -248,7 +265,11 @@ fun OvertimeApp(
                         recordToEdit = rec
                         showQuickOtDialog = true
                     },
-                    onDeleteClick = { id -> viewModel.deleteOvertime(id) }
+                    onDeleteClick = { id ->
+                        otRecords.find { it.id == id }?.let { rec ->
+                            viewModel.moveOtToTrash(rec)
+                        } ?: viewModel.deleteOvertime(id)
+                    }
                 )
 
                 2 -> PieceRateScreen(
@@ -258,7 +279,11 @@ fun OvertimeApp(
                     summary = summary,
                     lang = lang,
                     onAddPieceClick = { showPieceDialog = true },
-                    onDeletePieceClick = { id -> viewModel.deletePieceRate(id) }
+                    onDeletePieceClick = { id ->
+                        pieceRecords.find { it.id == id }?.let { rec ->
+                            viewModel.movePieceToTrash(rec)
+                        } ?: viewModel.deletePieceRate(id)
+                    }
                 )
 
                 3 -> ProfileScreen(
@@ -276,7 +301,11 @@ fun OvertimeApp(
                     onSignOut = { viewModel.signOut() },
                     onSaveProfile = { updated -> viewModel.updateProfile(updated) },
                     onToggleLanguage = { viewModel.toggleLanguage() },
-                    onSyncCloud = { callback -> viewModel.syncCloudNow(callback) }
+                    onSyncCloud = { callback -> viewModel.syncCloudNow(callback) },
+                    trashItems = trashItems,
+                    onRestoreTrash = { viewModel.restoreTrashItem(it) },
+                    onDeleteTrashPermanently = { viewModel.deleteTrashItemPermanently(it) },
+                    onClearAllTrash = { viewModel.clearAllTrash() }
                 )
             }
         }
@@ -343,6 +372,24 @@ fun OvertimeApp(
             onSave = { newTarget ->
                 viewModel.updateTargetHours(newTarget)
                 showTargetDialog = false
+            }
+        )
+    }
+
+    // Missing Overtime Entry Reminder Dialog
+    if (showMissingOtDialog && profile.hasAcceptedPrivacyPolicy && !showQuickOtDialog) {
+        MissingOtReminderDialog(
+            missingDates = missingOtDates,
+            lang = lang,
+            onDismiss = { showMissingOtDialog = false },
+            onAddOtForDate = { targetDate ->
+                showMissingOtDialog = false
+                recordToEdit = OvertimeRecord(
+                    date = targetDate,
+                    yearMonth = if (targetDate.length >= 7) targetDate.substring(0, 7) else "",
+                    otHours = 0.0
+                )
+                showQuickOtDialog = true
             }
         )
     }

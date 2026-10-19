@@ -477,7 +477,7 @@ fun PieceRateScreen(
             title = { Text("পিস রেট রেকর্ড মুছবেন?") },
             text = {
                 Text(
-                    text = "আপনি কি নিশ্চিত যে '${itemToDelete?.itemName}' (${itemToDelete?.date}) এর রেকর্ডটি মুছে ফেলতে চান?"
+                    text = "আপনি কি নিশ্চিত যে '${itemToDelete?.itemName}' (${itemToDelete?.date}) এর রেকর্ডটি রিসাইকেল বিন (Trash)-এ পাঠাতে চান? সেখানে এটি ১ দিন জমা থাকবে।"
                 )
             },
             confirmButton = {

@@ -353,7 +353,7 @@ fun OtListScreen(
         AlertDialog(
             onDismissRequest = { recordToDelete = null },
             title = { Text("ওটি রেকর্ড মুছবেন?") },
-            text = { Text("আপনি কি নিশ্চিত যে এই তারিখের ওটি রেকর্ডটি মুছে ফেলতে চান?") },
+            text = { Text("এই ওটি রেকর্ডটি রিসাইকেল বিন (Trash)-এ চলে যাবে। সেখানে এটি ১ দিন জমা থাকবে এবং আপনি চাইলে যেকোনো সময় ফিরিয়ে আনতে পারবেন।") },
             confirmButton = {
                 Button(
                     onClick = {

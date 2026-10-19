@@ -292,7 +292,7 @@ fun QuickOtEntryDialog(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (initialRecord != null) "ওটি তথ্য সম্পাদন" else LanguageManager.get("quick_ot_entry", lang),
+                    text = if (initialRecord != null && initialRecord.id != 0L) "ওটি তথ্য সম্পাদন" else LanguageManager.get("quick_ot_entry", lang),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

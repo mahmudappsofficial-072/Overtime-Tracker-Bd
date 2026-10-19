@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
 import com.example.data.model.OvertimeRecord
 import com.example.data.model.PieceRateRecord
+import com.example.data.model.TrashItem
 import com.example.data.model.UserProfile
 import com.example.data.repository.OvertimeRepository
 import com.example.util.LaborLawCalculator
@@ -32,6 +33,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
         repository = OvertimeRepository(db)
         viewModelScope.launch {
             repository.cleanupDuplicateDates()
+            repository.purgeExpiredTrash()
             com.example.data.auth.AuthManager.currentUser.collect { user ->
                 if (user != null) {
                     repository.fullAutoSyncAndRestore()
@@ -39,6 +41,13 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             }
         }
     }
+
+    val trashItems: StateFlow<List<TrashItem>> = repository.allTrashItems
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     private val currentMonthStr = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
 
@@ -384,6 +393,42 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
     fun deletePieceRate(id: Long) {
         viewModelScope.launch {
             repository.deletePieceRate(id)
+        }
+    }
+
+    fun moveOtToTrash(record: OvertimeRecord) {
+        viewModelScope.launch {
+            repository.moveOvertimeToTrash(record)
+        }
+    }
+
+    fun movePieceToTrash(record: PieceRateRecord) {
+        viewModelScope.launch {
+            repository.movePieceRateToTrash(record)
+        }
+    }
+
+    fun restoreTrashItem(item: TrashItem) {
+        viewModelScope.launch {
+            repository.restoreTrashItem(item)
+        }
+    }
+
+    fun deleteTrashItemPermanently(item: TrashItem) {
+        viewModelScope.launch {
+            repository.deleteTrashItemPermanently(item)
+        }
+    }
+
+    fun clearAllTrash() {
+        viewModelScope.launch {
+            repository.clearAllTrash()
+        }
+    }
+
+    fun purgeExpiredTrash() {
+        viewModelScope.launch {
+            repository.purgeExpiredTrash()
         }
     }
 

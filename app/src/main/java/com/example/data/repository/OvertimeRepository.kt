@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.data.local.AppDatabase
 import com.example.data.model.OvertimeRecord
 import com.example.data.model.PieceRateRecord
+import com.example.data.model.TrashItem
 import com.example.data.model.UserProfile
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 
 private suspend fun <T> Task<T>.awaitResult(): T =
     suspendCancellableCoroutine { cont ->
@@ -28,6 +30,9 @@ class OvertimeRepository(private val database: AppDatabase) {
     private val pieceRateDao = database.pieceRateDao()
     private val userProfileDao = database.userProfileDao()
     private val monthlySalaryDao = database.monthlySalaryDao()
+    private val trashDao = database.trashDao()
+
+    val allTrashItems: Flow<List<TrashItem>> = trashDao.getAllTrashItems()
 
     private val auth: FirebaseAuth get() = FirebaseAuth.getInstance()
     private val firestore: FirebaseFirestore get() = FirebaseFirestore.getInstance()
@@ -38,6 +43,7 @@ class OvertimeRepository(private val database: AppDatabase) {
         syncScope.launch {
             try {
                 overtimeDao.cleanupDuplicateDates()
+                purgeExpiredTrash()
                 val current = userProfileDao.getUserProfileOnce()
                 if (current != null) {
                     val isDummyProfile = current.userName == "মোঃ শ্রমিক ভাই" ||
@@ -570,5 +576,46 @@ class OvertimeRepository(private val database: AppDatabase) {
             note = map["note"] as? String ?: "",
             createdAt = (map["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
         )
+    }
+
+    suspend fun moveOvertimeToTrash(record: OvertimeRecord) = withContext(Dispatchers.IO) {
+        trashDao.insertTrashItem(TrashItem.fromOvertimeRecord(record))
+        deleteOvertime(record.id)
+    }
+
+    suspend fun movePieceRateToTrash(record: PieceRateRecord) = withContext(Dispatchers.IO) {
+        trashDao.insertTrashItem(TrashItem.fromPieceRateRecord(record))
+        deletePieceRate(record.id)
+    }
+
+    suspend fun restoreTrashItem(item: TrashItem) = withContext(Dispatchers.IO) {
+        when (item.itemType) {
+            "OT" -> {
+                val record = item.toOvertimeRecord()
+                if (record != null) {
+                    insertOrUpdateOvertime(record)
+                }
+            }
+            "PIECE" -> {
+                val record = item.toPieceRateRecord()
+                if (record != null) {
+                    insertPieceRate(record)
+                }
+            }
+        }
+        trashDao.deleteTrashItem(item)
+    }
+
+    suspend fun deleteTrashItemPermanently(item: TrashItem) = withContext(Dispatchers.IO) {
+        trashDao.deleteTrashItem(item)
+    }
+
+    suspend fun clearAllTrash() = withContext(Dispatchers.IO) {
+        trashDao.clearAllTrash()
+    }
+
+    suspend fun purgeExpiredTrash(): Int = withContext(Dispatchers.IO) {
+        val cutoff = System.currentTimeMillis() - 86400000L // 24 hours ago
+        trashDao.purgeExpiredTrash(cutoff)
     }
 }

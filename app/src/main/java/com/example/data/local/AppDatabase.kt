@@ -8,14 +8,15 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.MonthlySalarySettings
 import com.example.data.model.OvertimeRecord
 import com.example.data.model.PieceRateRecord
+import com.example.data.model.TrashItem
 import com.example.data.model.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [OvertimeRecord::class, PieceRateRecord::class, UserProfile::class, MonthlySalarySettings::class],
-    version = 5,
+    entities = [OvertimeRecord::class, PieceRateRecord::class, UserProfile::class, MonthlySalarySettings::class, TrashItem::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -23,6 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pieceRateDao(): PieceRateDao
     abstract fun userProfileDao(): UserProfileDao
     abstract fun monthlySalaryDao(): MonthlySalaryDao
+    abstract fun trashDao(): TrashDao
 
     companion object {
         @Volatile
@@ -66,6 +68,25 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS trash_items (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        itemType TEXT NOT NULL,
+                        originalId INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        subtitle TEXT NOT NULL,
+                        date TEXT NOT NULL,
+                        jsonData TEXT NOT NULL,
+                        deletedAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -73,7 +94,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "overtime_bd_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigration(true)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

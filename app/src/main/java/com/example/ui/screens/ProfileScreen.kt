@@ -45,10 +45,15 @@ fun ProfileScreen(
     onSignOut: () -> Unit = {},
     onSaveProfile: (UserProfile) -> Unit,
     onToggleLanguage: () -> Unit,
-    onSyncCloud: ((Boolean, String) -> Unit) -> Unit = {}
+    onSyncCloud: ((Boolean, String) -> Unit) -> Unit = {},
+    trashItems: List<com.example.data.model.TrashItem> = emptyList(),
+    onRestoreTrash: (com.example.data.model.TrashItem) -> Unit = {},
+    onDeleteTrashPermanently: (com.example.data.model.TrashItem) -> Unit = {},
+    onClearAllTrash: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val isBn = lang == "bn"
+    var showTrashDialog by remember { mutableStateOf(false) }
 
     // Profile state
     var userName by remember(profile) { mutableStateOf(profile.userName) }
@@ -838,7 +843,77 @@ fun ProfileScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("সহায়তা ও গোপনীয়তা (Help & Privacy)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    Text("সেটিংস ও সহায়তা (Settings & Support)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+
+                    // Recycle Bin / Trash Option
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showTrashDialog = true }
+                            .testTag("trash_bin_button")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.errorContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DeleteSweep,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "রিসাইকেল বিন (Trash)",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = "ডিলিট করা ওটি ও পিস রেট ১ দিন জমা থাকে",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (trashItems.isNotEmpty()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = MaterialTheme.colorScheme.error
+                                    ) {
+                                        Text(
+                                            text = "${trashItems.size}টি",
+                                            color = MaterialTheme.colorScheme.onError,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
 
                     // WhatsApp Direct Help Button
                     OutlinedButton(
@@ -1047,6 +1122,256 @@ fun ProfileScreen(
             dismissButton = {
                 TextButton(onClick = { showSignOutConfirmDialog = false }) {
                     Text(if (isBn) "বাতিল" else "Cancel")
+                }
+            }
+        )
+    }
+
+    if (showTrashDialog) {
+        TrashManagementDialog(
+            trashItems = trashItems,
+            onRestore = { item ->
+                onRestoreTrash(item)
+                Toast.makeText(context, "রেকর্ডটি সফলভাবে রিস্টোর করা হয়েছে!", Toast.LENGTH_SHORT).show()
+            },
+            onDeletePermanently = { item ->
+                onDeleteTrashPermanently(item)
+                Toast.makeText(context, "রেকর্ডটি স্থায়ীভাবে মুছে ফেলা হয়েছে", Toast.LENGTH_SHORT).show()
+            },
+            onClearAll = {
+                onClearAllTrash()
+                Toast.makeText(context, "রিসাইকেল বিন সম্পূর্ণ খালি করা হয়েছে", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showTrashDialog = false }
+        )
+    }
+}
+
+@Composable
+fun TrashManagementDialog(
+    trashItems: List<com.example.data.model.TrashItem>,
+    onRestore: (com.example.data.model.TrashItem) -> Unit,
+    onDeletePermanently: (com.example.data.model.TrashItem) -> Unit,
+    onClearAll: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var itemToDeletePermanently by remember { mutableStateOf<com.example.data.model.TrashItem?>(null) }
+    var showClearAllConfirm by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("রিসাইকেল বিন (Trash)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+                if (trashItems.isNotEmpty()) {
+                    TextButton(onClick = { showClearAllConfirm = true }) {
+                        Text("সব মুছুন", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "ডিলিট করা রেকর্ডগুলো এখানে ১ দিন (২৪ ঘণ্টা) জমা থাকে। এর মধ্যে রিস্টোর না করলে তা স্বয়ংক্রিয়ভাবে চিরতরে মুছে যাবে।",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                if (trashItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 36.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "রিসাইকেল বিন সম্পূর্ণ খালি!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "কোনো ডিলিট করা ওটি বা পিস রেট নেই",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(trashItems.size, key = { trashItems[it].id }) { index ->
+                            val item = trashItems[index]
+                            val now = System.currentTimeMillis()
+                            val elapsedMillis = now - item.deletedAt
+                            val remainingHours = kotlin.math.max(0, 24 - (elapsedMillis / (1000 * 60 * 60)).toInt())
+
+                            Card(
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = if (item.itemType == "OT") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+                                        ) {
+                                            Text(
+                                                text = if (item.itemType == "OT") "ওভারটাইম" else "পিস রেট",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (item.itemType == "OT") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        Text(
+                                            text = "বাকি: $remainingHours ঘণ্টা",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = item.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = item.subtitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        TextButton(
+                                            onClick = { itemToDeletePermanently = item }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.DeleteForever,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("স্থায়ী মুছুন", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Button(
+                                            onClick = { onRestore(item) },
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                            modifier = Modifier.height(32.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Restore,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("রিস্টোর", fontSize = 12.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("বন্ধ করুন")
+            }
+        }
+    )
+
+    // Permanent delete confirmation dialog
+    if (itemToDeletePermanently != null) {
+        AlertDialog(
+            onDismissRequest = { itemToDeletePermanently = null },
+            title = { Text("স্থায়ীভাবে মুছে ফেলবেন?") },
+            text = { Text("এই রেকর্ডটি চিরতরে মুছে ফেলা হবে এবং আর ফিরিয়ে আনা যাবে না।") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        itemToDeletePermanently?.let { onDeletePermanently(it) }
+                        itemToDeletePermanently = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("স্থায়ী মুছুন")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToDeletePermanently = null }) {
+                    Text("বাতিল")
+                }
+            }
+        )
+    }
+
+    // Clear all confirm
+    if (showClearAllConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearAllConfirm = false },
+            title = { Text("রিসাইকেল বিন খালি করবেন?") },
+            text = { Text("ট্র্যাশের সকল রেকর্ড চিরতরে মুছে যাবে। আপনি কি নিশ্চিত?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onClearAll()
+                        showClearAllConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("সব মুছুন")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearAllConfirm = false }) {
+                    Text("বাতিল")
                 }
             }
         )
