@@ -83,7 +83,7 @@ fun ProfileScreen(
         mutableStateOf(if (profile.houseRent == 0.0) "0" else profile.houseRent.toInt().toString())
     }
     var medicalText by remember(profile) {
-        mutableStateOf(if (profile.medicalAllowance == 0.0 || profile.medicalAllowance == 1250.0) "750" else profile.medicalAllowance.toInt().toString())
+        mutableStateOf(if (profile.medicalAllowance == 0.0 && profile.basicSalary == 0.0) "0" else if (profile.medicalAllowance == 0.0 || profile.medicalAllowance == 1250.0) "750" else profile.medicalAllowance.toInt().toString())
     }
     var conveyanceText by remember(profile) {
         mutableStateOf(if (profile.conveyanceAllowance == 0.0) "0" else profile.conveyanceAllowance.toInt().toString())

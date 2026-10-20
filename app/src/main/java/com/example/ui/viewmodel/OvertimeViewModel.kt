@@ -30,7 +30,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
     private val repository: OvertimeRepository
     init {
         val db = AppDatabase.getDatabase(application)
-        repository = OvertimeRepository(db)
+        repository = OvertimeRepository(db, application)
         viewModelScope.launch {
             repository.cleanupDuplicateDates()
             repository.purgeExpiredTrash()
@@ -473,7 +473,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
 
     fun signOut() {
         viewModelScope.launch {
-            com.example.data.auth.AuthManager.signOut()
+            com.example.data.auth.AuthManager.signOut(getApplication())
             repository.clearAllLocalData()
         }
     }

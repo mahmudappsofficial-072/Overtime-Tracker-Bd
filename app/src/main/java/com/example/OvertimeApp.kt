@@ -8,8 +8,17 @@ import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 
 class OvertimeApp : Application() {
+    companion object {
+        lateinit var instance: OvertimeApp
+            private set
+    }
+
     override fun onCreate() {
         super.onCreate()
+        instance = this
+        try {
+            com.example.receiver.TrashAutoDeleteScheduler.scheduleNextAutoDelete(this)
+        } catch (_: Exception) {}
         try {
             FirebaseApp.initializeApp(this)
             val firebaseAppCheck = FirebaseAppCheck.getInstance()

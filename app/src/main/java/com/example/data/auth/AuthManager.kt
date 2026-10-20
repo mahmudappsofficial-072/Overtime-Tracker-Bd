@@ -2,6 +2,7 @@ package com.example.data.auth
 
 import android.app.Activity
 import android.content.Context
+import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -107,10 +108,18 @@ object AuthManager {
         }
     }
 
-    fun signOut() {
+    fun signOut(context: Context? = null) {
         try {
             auth.signOut()
             _currentUser.value = null
+            context?.let { ctx ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val credentialManager = CredentialManager.create(ctx)
+                        credentialManager.clearCredentialState(ClearCredentialStateRequest())
+                    } catch (_: Exception) {}
+                }
+            }
         } catch (_: Exception) {}
     }
 }

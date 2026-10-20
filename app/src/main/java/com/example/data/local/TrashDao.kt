@@ -27,4 +27,7 @@ interface TrashDao {
 
     @Query("DELETE FROM trash_items WHERE deletedAt < :cutoffTimestamp")
     suspend fun purgeExpiredTrash(cutoffTimestamp: Long): Int
+
+    @Query("SELECT MIN(deletedAt) FROM trash_items")
+    suspend fun getEarliestDeletedTimestamp(): Long?
 }

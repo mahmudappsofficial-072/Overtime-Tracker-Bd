@@ -11,6 +11,7 @@ class BootReceiver : BroadcastReceiver() {
             intent?.action == "android.intent.action.QUICKBOOT_POWERON"
         ) {
             ReminderScheduler.scheduleDailyReminders(context)
+            TrashAutoDeleteScheduler.scheduleNextAutoDelete(context)
         }
     }
 }

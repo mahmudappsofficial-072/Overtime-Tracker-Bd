@@ -24,7 +24,7 @@ private suspend fun <T> Task<T>.awaitResult(): T =
         addOnCanceledListener { cont.cancel() }
     }
 
-class OvertimeRepository(private val database: AppDatabase) {
+class OvertimeRepository(private val database: AppDatabase, private val context: android.content.Context? = null) {
 
     private val overtimeDao = database.overtimeDao()
     private val pieceRateDao = database.pieceRateDao()
@@ -182,7 +182,38 @@ class OvertimeRepository(private val database: AppDatabase) {
         try {
             overtimeDao.deleteAllRecords()
             pieceRateDao.deleteAllPieceRecords()
-            userProfileDao.insertOrUpdateProfile(UserProfile(id = 1))
+            monthlySalaryDao.deleteAll()
+            trashDao.clearAllTrash()
+            scheduleTrashAutoDelete()
+
+            val current = userProfileDao.getUserProfileOnce()
+            val cleanProfile = UserProfile(
+                id = 1,
+                userName = "",
+                companyName = "",
+                designation = "",
+                workerId = "",
+                grade = "",
+                isCustomSalary = false,
+                basicSalary = 0.0,
+                houseRent = 0.0,
+                medicalAllowance = 0.0,
+                conveyanceAllowance = 0.0,
+                foodAllowance = 0.0,
+                attendanceBonus = 0.0,
+                maxAbsentForBonus = 0,
+                nightBillRate = 0.0,
+                tiffinBillRate = 0.0,
+                customOtRate = 0.0,
+                monthlyOtTargetHours = 0.0,
+                language = current?.language ?: "bn",
+                supportWhatsapp = "",
+                hasAcceptedPrivacyPolicy = current?.hasAcceptedPrivacyPolicy ?: false,
+                privacyPolicyAcceptedAt = current?.privacyPolicyAcceptedAt ?: 0L,
+                lastCloudSyncTime = 0L,
+                cloudSyncStatus = if ((current?.language ?: "bn") == "bn") "লগইন নেই (লোকাল)" else "Not logged in (Local)"
+            )
+            userProfileDao.insertOrUpdateProfile(cleanProfile)
         } catch (e: Exception) {
             Log.e("OvertimeRepository", "Error clearing local data", e)
         }
@@ -578,14 +609,25 @@ class OvertimeRepository(private val database: AppDatabase) {
         )
     }
 
+    private fun scheduleTrashAutoDelete() {
+        try {
+            val ctx = context ?: try { com.example.OvertimeApp.instance } catch (_: Exception) { null }
+            ctx?.let {
+                com.example.receiver.TrashAutoDeleteScheduler.scheduleNextAutoDelete(it)
+            }
+        } catch (_: Exception) {}
+    }
+
     suspend fun moveOvertimeToTrash(record: OvertimeRecord) = withContext(Dispatchers.IO) {
         trashDao.insertTrashItem(TrashItem.fromOvertimeRecord(record))
         deleteOvertime(record.id)
+        scheduleTrashAutoDelete()
     }
 
     suspend fun movePieceRateToTrash(record: PieceRateRecord) = withContext(Dispatchers.IO) {
         trashDao.insertTrashItem(TrashItem.fromPieceRateRecord(record))
         deletePieceRate(record.id)
+        scheduleTrashAutoDelete()
     }
 
     suspend fun restoreTrashItem(item: TrashItem) = withContext(Dispatchers.IO) {
@@ -604,18 +646,23 @@ class OvertimeRepository(private val database: AppDatabase) {
             }
         }
         trashDao.deleteTrashItem(item)
+        scheduleTrashAutoDelete()
     }
 
     suspend fun deleteTrashItemPermanently(item: TrashItem) = withContext(Dispatchers.IO) {
         trashDao.deleteTrashItem(item)
+        scheduleTrashAutoDelete()
     }
 
     suspend fun clearAllTrash() = withContext(Dispatchers.IO) {
         trashDao.clearAllTrash()
+        scheduleTrashAutoDelete()
     }
 
     suspend fun purgeExpiredTrash(): Int = withContext(Dispatchers.IO) {
-        val cutoff = System.currentTimeMillis() - 86400000L // 24 hours ago
-        trashDao.purgeExpiredTrash(cutoff)
+        val cutoff = System.currentTimeMillis() - com.example.receiver.TrashAutoDeleteScheduler.TWENTY_FOUR_HOURS_MILLIS
+        val purgedCount = trashDao.purgeExpiredTrash(cutoff)
+        scheduleTrashAutoDelete()
+        purgedCount
     }
 }
