@@ -55,7 +55,7 @@ object PdfSlipGenerator {
         // Title
         paint.textSize = 12f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        canvas.drawText("মাসিক বেতন ও ওভারটাইম স্লিপ (Salary & Overtime Pay Slip) • $selectedMonth", 44f, 85f, paint)
+        canvas.drawText(if (isBn) "মাসিক বেতন ও ওভারটাইম স্লিপ (Salary & Overtime Pay Slip) • $selectedMonth" else "Monthly Salary & Overtime Pay Slip • $selectedMonth", 44f, 85f, paint)
 
         // Brand Logo on top-right of PDF Header
         try {
@@ -77,13 +77,13 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(30, 41, 59)
         paint.textSize = 12f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("কর্মী নাম: ${profile.userName}", 56f, y + 8f, paint)
-        canvas.drawText("পদবি: ${profile.designation} (${profile.grade})", 320f, y + 8f, paint)
+        canvas.drawText(if (isBn) "কর্মী নাম: ${profile.userName}" else "Worker Name: ${profile.userName}", 56f, y + 8f, paint)
+        canvas.drawText(if (isBn) "পদবি: ${profile.designation} (${profile.grade})" else "Designation: ${profile.designation} (${profile.grade})", 320f, y + 8f, paint)
 
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        canvas.drawText("কার্ড / আইডি নং: ${profile.workerId}", 56f, y + 36f, paint)
+        canvas.drawText(if (isBn) "কার্ড / আইডি নং: ${profile.workerId}" else "Card / ID No: ${profile.workerId}", 56f, y + 36f, paint)
         val totalDays = summary.regularDutyDays + summary.dayShiftDays + summary.nightShiftDays + summary.holidayDutyDays
-        canvas.drawText("মোট ডিউটি দিন: $totalDays দিন | নাইট: ${summary.nightShiftDays} দিন", 320f, y + 36f, paint)
+        canvas.drawText(if (isBn) "মোট ডিউটি দিন: $totalDays দিন | নাইট: ${summary.nightShiftDays} দিন" else "Total Duty: $totalDays days | Night: ${summary.nightShiftDays} days", 320f, y + 36f, paint)
 
         y += 90f
 
@@ -91,21 +91,21 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(5, 150, 105)
         paint.textSize = 13f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("হাজিরা ও শিফট বিবরণ (Attendance):", 44f, y, paint)
+        canvas.drawText(if (isBn) "হাজিরা ও শিফট বিবরণ (Attendance):" else "Attendance & Shift Summary:", 44f, y, paint)
         y += 20f
 
         paint.color = Color.rgb(71, 85, 105)
         paint.textSize = 11f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        canvas.drawText("ছুটি / সাপ্তাহিক ছুটি: ${summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays} দিন", 56f, y, paint)
+        canvas.drawText(if (isBn) "ছুটি / সাপ্তাহিক ছুটি: ${summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays} দিন" else "Leave / Weekly Off: ${summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays} days", 56f, y, paint)
         val bonusStatusText = if (summary.attendanceBonus > 0) {
-            "(হাজিরা বোনাস অর্জিত)"
+            if (isBn) "(হাজিরা বোনাস অর্জিত)" else "(Attendance Bonus Earned)"
         } else if (summary.absentDays > 0) {
-            "(হাজিরা বোনাস কর্তন)"
+            if (isBn) "(হাজিরা বোনাস কর্তন)" else "(Attendance Bonus Deducted)"
         } else {
             ""
         }
-        canvas.drawText("অনুপস্থিত: ${summary.absentDays} দিন $bonusStatusText", 320f, y, paint)
+        canvas.drawText(if (isBn) "অনুপস্থিত: ${summary.absentDays} দিন $bonusStatusText" else "Absent: ${summary.absentDays} days $bonusStatusText", 320f, y, paint)
         y += 28f
 
         // Divider
@@ -118,7 +118,7 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(5, 150, 105)
         paint.textSize = 13f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("মূল বেতন ও নির্ধারিত ভাতাসমূহ (Earnings Breakdown):", 44f, y, paint)
+        canvas.drawText(if (isBn) "মূল বেতন ও নির্ধারিত ভাতাসমূহ (Earnings Breakdown):" else "Basic Salary & Fixed Allowances:", 44f, y, paint)
         y += 20f
 
         fun drawPdfRow(label: String, amount: Double, isBold: Boolean = false) {
@@ -133,17 +133,21 @@ object PdfSlipGenerator {
             y += 18f
         }
 
-        drawPdfRow("মূল বেতন (Basic Salary)", summary.basicSalary)
-        drawPdfRow("বাড়িভাড়া ভাতা (House Rent - 50%)", profile.houseRent)
-        drawPdfRow("চিকিৎসা ভাতা (Medical Allowance)", profile.medicalAllowance)
-        drawPdfRow("যাতায়াত ভাতা (Conveyance)", profile.conveyanceAllowance)
-        drawPdfRow("খাদ্য ভাতা (Food Allowance)", profile.foodAllowance)
+        drawPdfRow(if (isBn) "মূল বেতন (Basic Salary)" else "Basic Salary", summary.basicSalary)
+        drawPdfRow(if (isBn) "বাড়িভাড়া ভাতা (House Rent - 50%)" else "House Rent Allowance (50%)", profile.houseRent)
+        drawPdfRow(if (isBn) "চিকিৎসা ভাতা (Medical Allowance)" else "Medical Allowance", profile.medicalAllowance)
+        drawPdfRow(if (isBn) "যাতায়াত ভাতা (Conveyance)" else "Conveyance Allowance", profile.conveyanceAllowance)
+        drawPdfRow(if (isBn) "খাদ্য ভাতা (Food Allowance)" else "Food Allowance", profile.foodAllowance)
         val attendanceLabel = if (summary.attendanceBonus > 0) {
-            if (summary.absentDays > 0) "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতি অনুমোদিত)" else "হাজিরা বোনাস (নিয়মিত উপস্থিতি)"
+            if (summary.absentDays > 0) {
+                if (isBn) "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতি অনুমোদিত)" else "Attendance Bonus (${summary.absentDays} absent days allowed)"
+            } else {
+                if (isBn) "হাজিরা বোনাস (নিয়মিত উপস্থিতি)" else "Attendance Bonus (Regular Attendance)"
+            }
         } else if (summary.absentDays > 0) {
-            "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতির জন্য বাতিল)"
+            if (isBn) "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতির জন্য বাতিল)" else "Attendance Bonus (Cancelled for ${summary.absentDays} absent days)"
         } else {
-            "হাজিরা বোনাস"
+            if (isBn) "হাজিরা বোনাস" else "Attendance Bonus"
         }
         drawPdfRow(
             attendanceLabel,
@@ -158,22 +162,22 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(5, 150, 105)
         paint.textSize = 13f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("অতিরিক্ত আয় (Overtime & Extra Earnings):", 44f, y, paint)
+        canvas.drawText(if (isBn) "অতিরিক্ত আয় (Overtime & Extra Earnings):" else "Overtime & Extra Earnings:", 44f, y, paint)
         y += 20f
 
-        drawPdfRow("ওভারটাইম আয় (${String.format("%.1f", summary.totalOtHours)} ঘণ্টা @ Tk ${String.format("%.2f", summary.hourlyOtRate)}/ঘণ্টা)", summary.totalOtAmount, isBold = true)
+        drawPdfRow(if (isBn) "ওভারটাইম আয় (${String.format("%.1f", summary.totalOtHours)} ঘণ্টা @ Tk ${String.format("%.2f", summary.hourlyOtRate)}/ঘণ্টা)" else "Overtime Income (${String.format("%.1f", summary.totalOtHours)} hrs @ Tk ${String.format("%.2f", summary.hourlyOtRate)}/hr)", summary.totalOtAmount, isBold = true)
         if (summary.nightBillTotal > 0) {
-            drawPdfRow("নাইট বিল (${summary.nightBillCount}টি @ Tk ${String.format("%.0f", profile.nightBillRate)})", summary.nightBillTotal)
+            drawPdfRow(if (isBn) "নাইট বিল (${summary.nightBillCount}টি @ Tk ${String.format("%.0f", profile.nightBillRate)})" else "Night Bill (${summary.nightBillCount} nights @ Tk ${String.format("%.0f", profile.nightBillRate)})", summary.nightBillTotal)
         }
         if (summary.tiffinBillTotal > 0) {
-            drawPdfRow("টিফিন বিল (${summary.tiffinBillCount}টি @ Tk ${String.format("%.0f", profile.tiffinBillRate)})", summary.tiffinBillTotal)
+            drawPdfRow(if (isBn) "টিফিন বিল (${summary.tiffinBillCount}টি @ Tk ${String.format("%.0f", profile.tiffinBillRate)})" else "Tiffin Bill (${summary.tiffinBillCount} days @ Tk ${String.format("%.0f", profile.tiffinBillRate)})", summary.tiffinBillTotal)
         }
         if (summary.totalPieceAmount > 0) {
-            drawPdfRow("পিস রেট আয় (Piece Rate Earnings)", summary.totalPieceAmount)
+            drawPdfRow(if (isBn) "পিস রেট আয় (Piece Rate Earnings)" else "Piece Rate Earnings", summary.totalPieceAmount)
         }
         if (summary.absentDeduction > 0) {
             paint.color = Color.rgb(220, 38, 38)
-            drawPdfRow("অনুপস্থিতি কর্তন (${summary.absentDays} দিন @ Tk ${String.format("%.2f", summary.dailyAbsentRate)}/দিন)", -summary.absentDeduction, isBold = true)
+            drawPdfRow(if (isBn) "অনুপস্থিতি কর্তন (${summary.absentDays} দিন @ Tk ${String.format("%.2f", summary.dailyAbsentRate)}/দিন)" else "Absent Deduction (${summary.absentDays} days @ Tk ${String.format("%.2f", summary.dailyAbsentRate)}/day)", -summary.absentDeduction, isBold = true)
         }
 
         y += 10f
@@ -190,7 +194,7 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(5, 150, 105)
         paint.textSize = 14f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("মোট প্রদেয় বেতন (Net Payable):", 56f, y + 28f, paint)
+        canvas.drawText(if (isBn) "মোট প্রদেয় বেতন (Net Payable):" else "Net Payable Salary:", 56f, y + 28f, paint)
 
         paint.textAlign = Paint.Align.RIGHT
         paint.textSize = 16f
@@ -204,15 +208,15 @@ object PdfSlipGenerator {
         paint.textSize = 10f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         canvas.drawLine(56f, y + 40f, 180f, y + 40f, paint)
-        canvas.drawText("শ্রমিকের স্বাক্ষর", 76f, y + 54f, paint)
+        canvas.drawText(if (isBn) "শ্রমিকের স্বাক্ষর" else "Worker's Signature", 76f, y + 54f, paint)
 
         canvas.drawLine(pageWidth - 180f, y + 40f, pageWidth - 56f, y + 40f, paint)
-        canvas.drawText("অ্যাকাউন্টস / কারখানা কর্তৃপক্ষ", pageWidth - 170f, y + 54f, paint)
+        canvas.drawText(if (isBn) "অ্যাকাউন্টস / কারখানা কর্তৃপক্ষ" else "Accounts / Factory Authority", pageWidth - 170f, y + 54f, paint)
 
         // Footer note
         paint.textSize = 9f
         paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("Generated via Overtime Tracker BD • বাংলাদেশ শ্রম আইন অনুযায়ী প্রস্তুতকৃত", pageWidth / 2f, pageHeight - 36f, paint)
+        canvas.drawText(if (isBn) "Generated via Overtime Tracker BD • বাংলাদেশ শ্রম আইন অনুযায়ী প্রস্তুতকৃত" else "Generated via Overtime Tracker BD • Prepared under Bangladesh Labor Act", pageWidth / 2f, pageHeight - 36f, paint)
 
         pdfDocument.finishPage(page)
 
@@ -244,7 +248,7 @@ object PdfSlipGenerator {
                 savedUri = Uri.fromFile(file)
             }
 
-            Toast.makeText(context, "পিডিএফ ডাউনলোড হয়েছে: $fileName", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, if (isBn) "পিডিএফ ডাউনলোড হয়েছে: $fileName" else "PDF downloaded: $fileName", Toast.LENGTH_LONG).show()
 
             // Open intent
             savedUri?.let { uri ->
@@ -252,14 +256,14 @@ object PdfSlipGenerator {
                     setDataAndType(uri, "application/pdf")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                val chooser = Intent.createChooser(openIntent, "PDF ওপেন করুন")
+                val chooser = Intent.createChooser(openIntent, if (isBn) "PDF ওপেন করুন" else "Open PDF")
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 try {
                     context.startActivity(chooser)
                 } catch (_: Exception) {}
             }
         } catch (e: Exception) {
-            Toast.makeText(context, "পিডিএফ সংরক্ষণে সমস্যা: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, if (isBn) "পিডিএফ সংরক্ষণে সমস্যা: ${e.localizedMessage}" else "Failed to save PDF: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
         } finally {
             pdfDocument.close()
         }

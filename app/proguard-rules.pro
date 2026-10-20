@@ -19,3 +19,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Firebase App Check & Google Play Integrity rules
+-keep class com.google.firebase.appcheck.** { *; }
+-keep class com.google.android.play.core.integrity.** { *; }

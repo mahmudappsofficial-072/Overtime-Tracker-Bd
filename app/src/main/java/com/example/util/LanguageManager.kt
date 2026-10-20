@@ -1,5 +1,9 @@
 package com.example.util
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 object LanguageManager {
 
     enum class Lang(val code: String, val displayName: String) {
@@ -11,6 +15,21 @@ object LanguageManager {
         val isBn = lang.lowercase().startsWith("bn")
         val dict = if (isBn) bnDict else enDict
         return dict[key] ?: enDict[key] ?: key
+    }
+
+    fun formatYearMonth(yearMonth: String, isBn: Boolean): String {
+        return try {
+            val sdf = SimpleDateFormat("yyyy-MM", Locale.US)
+            val date = sdf.parse(yearMonth) ?: return yearMonth
+            val outSdf = if (isBn) {
+                SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("bn-BD"))
+            } else {
+                SimpleDateFormat("MMMM yyyy", Locale.US)
+            }
+            outSdf.format(date)
+        } catch (e: Exception) {
+            yearMonth
+        }
     }
 
     private val bnDict = mapOf(
@@ -72,7 +91,30 @@ object LanguageManager {
         "edit" to "এডিট",
         "delete" to "ডিলিট",
         "no_records" to "এই মাসে কোনো তথ্য পাওয়া যায়নি",
-        "target_hours" to "টার্গেট ঘণ্টা নির্ধারণ করুন"
+        "target_hours" to "টার্গেট ঘণ্টা নির্ধারণ করুন",
+        "total_days" to "মোট দিন",
+        "days" to "দিন",
+        "hours_unit" to "ঘণ্টা",
+        "earned" to "অর্জিত",
+        "deducted" to "কর্তন",
+        "absent" to "অনুপস্থিত",
+        "leave" to "ছুটি",
+        "weekly_off" to "সাপ্তাহিক ছুটি",
+        "regular" to "নিয়মিত",
+        "day_shift" to "দিন",
+        "night_shift" to "রাত",
+        "holiday" to "ছুটির দিন",
+        "recent_ot_records" to "সাম্প্রতিক ওটি রেকর্ড",
+        "view_all" to "সব দেখুন",
+        "change_target" to "টার্গেট পরিবর্তন",
+        "trash" to "রিসাইকেল বিন (Trash)",
+        "restore" to "রিস্টোর",
+        "delete_permanently" to "স্থায়ী মুছুন",
+        "empty_trash" to "সব মুছুন",
+        "close" to "বন্ধ করুন",
+        "confirm" to "নিশ্চিত করুন",
+        "ok" to "ঠিক আছে",
+        "download_pdf" to "পিডিএফ ডাউনলোড করুন"
     )
 
     private val enDict = mapOf(
@@ -134,6 +176,29 @@ object LanguageManager {
         "edit" to "Edit",
         "delete" to "Delete",
         "no_records" to "No records found for this month",
-        "target_hours" to "Set Target OT Hours"
+        "target_hours" to "Set Target OT Hours",
+        "total_days" to "Total Days",
+        "days" to "days",
+        "hours_unit" to "hours",
+        "earned" to "Earned",
+        "deducted" to "Deducted",
+        "absent" to "Absent",
+        "leave" to "Leave",
+        "weekly_off" to "Weekly Off",
+        "regular" to "Regular",
+        "day_shift" to "Day",
+        "night_shift" to "Night",
+        "holiday" to "Holiday",
+        "recent_ot_records" to "Recent OT Records",
+        "view_all" to "View All",
+        "change_target" to "Change Target",
+        "trash" to "Recycle Bin (Trash)",
+        "restore" to "Restore",
+        "delete_permanently" to "Delete Permanently",
+        "empty_trash" to "Empty Trash",
+        "close" to "Close",
+        "confirm" to "Confirm",
+        "ok" to "OK",
+        "download_pdf" to "Download PDF"
     )
 }

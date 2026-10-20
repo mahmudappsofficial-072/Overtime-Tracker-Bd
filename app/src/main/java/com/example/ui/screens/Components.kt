@@ -314,7 +314,7 @@ fun QuickOtEntryDialog(
 
                 // Shift Selector Section
                 Text(
-                    text = "শিফট / উপস্থিতির ধরন:",
+                    text = if (isBn) "শিফট / উপস্থিতির ধরন:" else "Shift / Attendance Type:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -436,7 +436,7 @@ fun QuickOtEntryDialog(
 
                     // Preset hour chips
                     Text(
-                        text = "দ্রুত ওটি ঘণ্টা নির্বাচন:",
+                        text = if (isBn) "দ্রুত ওটি ঘণ্টা নির্বাচন:" else "Quick OT Hours Selection:",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -447,7 +447,7 @@ fun QuickOtEntryDialog(
                         presetHours.take(4).forEach { h ->
                             AssistChip(
                                 onClick = { hoursText = h.toString() },
-                                label = { Text("${LaborLawCalculator.formatNumber(h, isBn)} ঘ") },
+                                label = { Text("${LaborLawCalculator.formatNumber(h, isBn)} ${if (isBn) "ঘ" else "h"}") },
                                 colors = AssistChipDefaults.assistChipColors(
                                     containerColor = if (parsedHours == h) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                                 )
@@ -461,7 +461,7 @@ fun QuickOtEntryDialog(
                         presetHours.drop(4).forEach { h ->
                             AssistChip(
                                 onClick = { hoursText = h.toString() },
-                                label = { Text("${LaborLawCalculator.formatNumber(h, isBn)} ঘ") },
+                                label = { Text("${LaborLawCalculator.formatNumber(h, isBn)} ${if (isBn) "ঘ" else "h"}") },
                                 colors = AssistChipDefaults.assistChipColors(
                                     containerColor = if (parsedHours == h) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                                 )
@@ -480,7 +480,7 @@ fun QuickOtEntryDialog(
                         leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
                         supportingText = {
                             Text(
-                                text = "আনুমানিক ওটি টাকা: ${LaborLawCalculator.formatCurrency(calculatedAmount, isBn)}",
+                                text = if (isBn) "আনুমানিক ওটি টাকা: ${LaborLawCalculator.formatCurrency(calculatedAmount, isBn)}" else "Est. OT Amount: ${LaborLawCalculator.formatCurrency(calculatedAmount, isBn)}",
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -820,7 +820,12 @@ fun AddPieceRateDialog(
     val rate = rateText.toDoubleOrNull() ?: 0.0
     val total = count * rate
 
-    val popularItems = listOf("কলার তৈরি", "পকেট জয়েন্ট", "স্লিভ এটাচ", "বটম হেম", "বাটন স্টিচ")
+    val isBn = lang == "bn"
+    val popularItems = if (isBn) {
+        listOf("কলার তৈরি", "পকেট জয়েন্ট", "স্লিভ এটাচ", "বটম হেম", "বাটন স্টিচ")
+    } else {
+        listOf("Collar Making", "Pocket Joint", "Sleeve Attach", "Bottom Hem", "Button Stitch")
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -838,11 +843,11 @@ fun AddPieceRateDialog(
                 ProfessionalDatePickerField(
                     selectedDate = date,
                     onDateSelected = { date = it },
-                    isBn = lang == "bn"
+                    isBn = isBn
                 )
 
                 // Quick item suggestions
-                Text("জনপ্রিয় কাজের নাম:", style = MaterialTheme.typography.labelSmall)
+                Text(if (isBn) "জনপ্রিয় কাজের নাম:" else "Popular Task Suggestions:", style = MaterialTheme.typography.labelSmall)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -860,7 +865,7 @@ fun AddPieceRateDialog(
                     onValueChange = { itemName = it },
                     label = { Text(LanguageManager.get("item_name", lang)) },
                     modifier = Modifier.fillMaxWidth().testTag("piece_name_input"),
-                    placeholder = { Text("যেমন: শার্ট কলার জয়েন্ট") },
+                    placeholder = { Text(if (isBn) "যেমন: শার্ট কলার জয়েন্ট" else "e.g. Shirt Collar Joint") },
                     singleLine = true
                 )
 
@@ -891,7 +896,7 @@ fun AddPieceRateDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "মোট পিস রেট আয়: ${LaborLawCalculator.formatCurrency(total, lang == "bn")}",
+                        text = if (isBn) "মোট পিস রেট আয়: ${LaborLawCalculator.formatCurrency(total, true)}" else "Total Piece Income: ${LaborLawCalculator.formatCurrency(total, false)}",
                         modifier = Modifier.padding(12.dp),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -934,6 +939,7 @@ fun TargetGoalDialog(
     onDismiss: () -> Unit,
     onSave: (Double) -> Unit
 ) {
+    val isBn = lang == "bn"
     var targetText by remember { mutableStateOf(currentTarget.toInt().toString()) }
 
     AlertDialog(
@@ -944,13 +950,16 @@ fun TargetGoalDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "মাসে আপনি মোট কত ঘণ্টা ওভারটাইম করার পরিকল্পনা করছেন? লক্ষ্য নির্ধারণ করলে প্রতিদিনের হিসাব সহজ হয়।",
+                    text = if (isBn)
+                        "মাসে আপনি মোট কত ঘণ্টা ওভারটাইম করার পরিকল্পনা করছেন? লক্ষ্য নির্ধারণ করলে প্রতিদিনের হিসাব সহজ হয়।"
+                    else
+                        "How many hours of overtime do you plan to do this month? Setting a target helps track daily progress.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
                     value = targetText,
                     onValueChange = { targetText = it },
-                    label = { Text("লক্ষ্যমাত্রা (ঘণ্টা)") },
+                    label = { Text(if (isBn) "লক্ষ্যমাত্রা (ঘণ্টা)" else "Target (Hours)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth().testTag("target_hours_input"),
                     singleLine = true
@@ -963,7 +972,7 @@ fun TargetGoalDialog(
                         FilterChip(
                             selected = targetText == preset.toString(),
                             onClick = { targetText = preset.toString() },
-                            label = { Text("${preset} ঘ") }
+                            label = { Text("${LaborLawCalculator.formatNumber(preset.toDouble(), isBn, 0)} ${if (isBn) "ঘ" else "h"}") }
                         )
                     }
                 }
@@ -993,6 +1002,7 @@ fun PrivacyPolicyDialog(
     lang: String,
     onDismiss: () -> Unit
 ) {
+    val isBn = lang == "bn"
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1010,17 +1020,26 @@ fun PrivacyPolicyDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "ওভারটাইম ট্র্যাকার বিডি - গোপনীয়তা ও সুরক্ষা নীতিমালা",
+                    text = if (isBn) "ওভারটাইম ট্র্যাকার বিডি - গোপনীয়তা ও সুরক্ষা নীতিমালা" else "Overtime Tracker BD - Privacy & Security Policy",
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "১. ডাটা নিরাপত্তা: আপনার সকল ওভারটাইম ও ব্যক্তিগত তথ্য প্রাথমিকভাবে আপনার নিজস্ব ডিভাইসে এনক্রিপ্টেড ও সুরক্ষিতভাবে সংরক্ষিত থাকে।\n\n" +
-                            "২. কোনো ট্র্যাকিং নেই: এই অ্যাপ্লিকেশন কোনো তৃতীয় পক্ষের বিজ্ঞাপন ট্র্যাকিং বা আপনার তথ্য অন্য কোনো কোম্পানির কাছে বিক্রি করে না।\n\n" +
-                            "৩. ক্লাউড ব্যাকআপ: আপনি যখন ক্লাউড সিঙ্ক ফিচার ব্যবহার করবেন, শুধুমাত্র তখনই আপনার তথ্য ফায়ারবেস ক্লাউডে সুরক্ষিত ডাটাবেসে সেভ হবে যেন ফোন বদলালেও তথ্য নিরাপদ থাকে।\n\n" +
-                            "৪. বাংলাদেশ শ্রম আইন সম্মতি: অ্যাপের সকল গাণিতিক সূত্র বাংলাদেশ শ্রম আইন ২০০৬ অনুযায়ী তৈরি।\n\n" +
-                            "৫. যোগাযোগ ও অভিযোগ: যে কোনো জিজ্ঞাসা বা ডেটা মুছে ফেলার অনুরোধে সরাসরি অ্যাপের হোয়াটসঅ্যাপ সাপোর্ট বা ইমেইলে যোগাযোগ করতে পারবেন।\n\n" +
-                            "৬. পুশ নোটিফিকেশন ও রিমাইন্ডার: আপনাকে গুরুত্বপূর্ণ নোটিশ, আপডেট ও দৈনিক ওটি রিমাইন্ডার পাঠাতে ফায়ারবেস ক্লাউড মেসেজিং (FCM) ও স্থানীয় অ্যালার্ম ব্যবহার করা হয়। এতে কোনো বিজ্ঞাপন বা স্প্যাম নেই এবং আপনি যেকোনো সময় ফোনের সেটিংস থেকে নোটিফিকেশন নিয়ন্ত্রণ করতে পারবেন।",
+                    text = if (isBn) {
+                        "১. ডাটা নিরাপত্তা: আপনার সকল ওভারটাইম ও ব্যক্তিগত তথ্য প্রাথমিকভাবে আপনার নিজস্ব ডিভাইসে এনক্রিপ্টেড ও সুরক্ষিতভাবে সংরক্ষিত থাকে।\n\n" +
+                        "২. কোনো ট্র্যাকিং নেই: এই অ্যাপ্লিকেশন কোনো তৃতীয় পক্ষের বিজ্ঞাপন ট্র্যাকিং বা আপনার তথ্য অন্য কোনো কোম্পানির কাছে বিক্রি করে না।\n\n" +
+                        "৩. ক্লাউড ব্যাকআপ: আপনি যখন ক্লাউড সিঙ্ক ফিচার ব্যবহার করবেন, শুধুমাত্র তখনই আপনার তথ্য ফায়ারবেস ক্লাউডে সুরক্ষিত ডাটাবেসে সেভ হবে যেন ফোন বদলালেও তথ্য নিরাপদ থাকে।\n\n" +
+                        "৪. বাংলাদেশ শ্রম আইন সম্মতি: অ্যাপের সকল গাণিতিক সূত্র বাংলাদেশ শ্রম আইন ২০০৬ অনুযায়ী তৈরি।\n\n" +
+                        "৫. যোগাযোগ ও অভিযোগ: যে কোনো জিজ্ঞাসা বা ডেটা মুছে ফেলার অনুরোধে সরাসরি অ্যাপের হোয়াটসঅ্যাপ সাপোর্ট বা ইমেইলে যোগাযোগ করতে পারবেন।\n\n" +
+                        "৬. পুশ নোটিফিকেশন ও রিমাইন্ডার: আপনাকে গুরুত্বপূর্ণ নোটিশ, আপডেট ও দৈনিক ওটি রিমাইন্ডার পাঠাতে ফায়ারবেস ক্লাউড মেসেজিং (FCM) ও স্থানীয় অ্যালার্ম ব্যবহার করা হয়। এতে কোনো বিজ্ঞাপন বা স্প্যাম নেই এবং আপনি যেকোনো সময় ফোনের সেটিংস থেকে নোটিফিকেশন নিয়ন্ত্রণ করতে পারবেন।"
+                    } else {
+                        "1. Data Security: All your overtime logs and personal salary information are initially stored securely on your local device.\n\n" +
+                        "2. Zero Tracking: This application does not track you with third-party advertising or sell your information to any third parties.\n\n" +
+                        "3. Cloud Backup: Only when you enable Cloud Sync with your Google Account, your data is securely backed up to Firebase Cloud so you never lose your records.\n\n" +
+                        "4. Labor Law Compliance: All mathematical calculation formulas strictly adhere to the Bangladesh Labor Act 2006.\n\n" +
+                        "5. Contact & Deletion: For support or requesting full data deletion, you can reach out directly via WhatsApp support or email.\n\n" +
+                        "6. Push Notifications & Reminders: Firebase Cloud Messaging (FCM) and local alarms send important announcements and daily OT reminders. No ads or spam are sent, and you can disable notifications anytime in settings."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     lineHeight = 20.sp
                 )
@@ -1028,7 +1047,7 @@ fun PrivacyPolicyDialog(
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("বুঝেছি")
+                Text(if (isBn) "বুঝেছি" else "Understood")
             }
         }
     )

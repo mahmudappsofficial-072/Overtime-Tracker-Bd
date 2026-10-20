@@ -143,7 +143,7 @@ fun ProfileScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "প্রোফাইল ও বেতন সেটিংস",
+                    text = if (isBn) "প্রোফাইল ও বেতন সেটিংস" else "Profile & Salary Setup",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -381,17 +381,17 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Text(
-                                text = userName.ifBlank { "আপনার নাম" },
+                                text = userName.ifBlank { if (isBn) "আপনার নাম" else "Your Name" },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${companyName.ifBlank { "ফ্যাক্টরি" }} • ${designation.ifBlank { "পদবি" }}",
+                                text = "${companyName.ifBlank { if (isBn) "ফ্যাক্টরি" else "Company" }} • ${designation.ifBlank { if (isBn) "পদবি" else "Designation" }}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "আইডি: ${workerId.ifBlank { "N/A" }} • ${grade.ifBlank { "গ্রেড" }}",
+                                text = "${if (isBn) "আইডি" else "ID"}: ${workerId.ifBlank { "N/A" }} • ${grade.ifBlank { if (isBn) "গ্রেড" else "Grade" }}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -404,7 +404,7 @@ fun ProfileScreen(
                     OutlinedTextField(
                         value = userName,
                         onValueChange = { userName = it },
-                        label = { Text("শ্রমিকের নাম") },
+                        label = { Text(if (isBn) "শ্রমিকের নাম" else "Worker Name") },
                         modifier = Modifier.fillMaxWidth().testTag("profile_name_input"),
                         singleLine = true,
                         leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null) }
@@ -417,14 +417,14 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = companyName,
                             onValueChange = { companyName = it },
-                            label = { Text("কোম্পানি / ফ্যাক্টরি") },
+                            label = { Text(if (isBn) "কোম্পানি / ফ্যাক্টরি" else "Company / Factory") },
                             modifier = Modifier.weight(1f).testTag("profile_company_input"),
                             singleLine = true
                         )
                         OutlinedTextField(
                             value = designation,
                             onValueChange = { designation = it },
-                            label = { Text("পদবি") },
+                            label = { Text(if (isBn) "পদবি" else "Designation") },
                             modifier = Modifier.weight(1f).testTag("profile_designation_input"),
                             singleLine = true
                         )
@@ -437,14 +437,14 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = workerId,
                             onValueChange = { workerId = it },
-                            label = { Text("আইডি নম্বর") },
+                            label = { Text(if (isBn) "আইডি নম্বর" else "Worker ID") },
                             modifier = Modifier.weight(1f).testTag("profile_id_input"),
                             singleLine = true
                         )
                         OutlinedTextField(
                             value = grade,
                             onValueChange = { grade = it },
-                            label = { Text("গ্রেড") },
+                            label = { Text(if (isBn) "গ্রেড" else "Grade") },
                             modifier = Modifier.weight(1f).testTag("profile_grade_input"),
                             singleLine = true
                         )
@@ -466,7 +466,7 @@ fun ProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "বেতন কাঠামো ও হিসাব পদ্ধতি",
+                        text = if (isBn) "বেতন কাঠামো ও হিসাব পদ্ধতি" else "Salary Structure & Calculation",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -504,7 +504,7 @@ fun ProfileScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "স্বয়ংক্রিয় (আইন অনুযায়ী)",
+                                    text = if (isBn) "স্বয়ংক্রিয় (আইন অনুযায়ী)" else "Automatic (Labor Law)",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (!isCustomSalary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -531,7 +531,7 @@ fun ProfileScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "কাস্টম (নিজস্ব নিয়ম)",
+                                    text = if (isBn) "কাস্টম (নিজস্ব নিয়ম)" else "Custom Rules",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isCustomSalary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -547,7 +547,11 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                         ) {
                             Text(
-                                text = "⚖️ সরকারি নিয়ম অনুযায়ী মোট বেতন দিলে মূল বেতন, বাড়িভাড়া ও ভাতাসমূহ স্বয়ংক্রিয়ভাবে হিসাব হবে। ওটি হার = মূল বেতন ÷ ১০৪ (দ্বিগুণ হার)।",
+                                text = if (isBn) {
+                                    "⚖️ সরকারি নিয়ম অনুযায়ী মোট বেতন দিলে মূল বেতন, বাড়িভাড়া ও ভাতাসমূহ স্বয়ংক্রিয়ভাবে হিসাব হবে। ওটি হার = মূল বেতন ÷ ১০৪ (দ্বিগুণ হার)।"
+                                } else {
+                                    "⚖️ Under labor law, basic salary, house rent & allowances are automatically calculated from gross salary. OT Rate = Basic ÷ 104 (2x rate)."
+                                },
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -560,7 +564,11 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
                         ) {
                             Text(
-                                text = "⚙️ কাস্টম মোড: আপনার ফ্যাক্টরির নিয়ম অনুযায়ী মূল বেতন, যেকোনো ভাতা বা প্রতি ঘণ্টার ওটি রেট নিজের মতো বসিয়ে নিতে পারবেন।",
+                                text = if (isBn) {
+                                    "⚙️ কাস্টম মোড: আপনার ফ্যাক্টরির নিয়ম অনুযায়ী মূল বেতন, যেকোনো ভাতা বা প্রতি ঘণ্টার ওটি রেট নিজের মতো বসিয়ে নিতে পারবেন।"
+                                } else {
+                                    "⚙️ Custom mode: Configure basic salary, any allowances, or hourly OT rate according to your company rules."
+                                },
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -574,7 +582,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = grossSalaryText,
                             onValueChange = { grossSalaryText = it },
-                            label = { Text("মোট বেতন (Gross Salary ৳)") },
+                            label = { Text(if (isBn) "মোট বেতন (Gross Salary ৳)" else "Gross Salary (৳)") },
                             modifier = Modifier.fillMaxWidth().testTag("gross_salary_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
@@ -585,7 +593,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = basicSalaryText,
                             onValueChange = { basicSalaryText = it },
-                            label = { Text("মূল বেতন (Basic Salary ৳)") },
+                            label = { Text(if (isBn) "মূল বেতন (Basic Salary ৳)" else "Basic Salary (৳)") },
                             modifier = Modifier.fillMaxWidth().testTag("basic_salary_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
@@ -595,7 +603,11 @@ fun ProfileScreen(
 
                     // Allowances Section
                     Text(
-                        text = if (!isCustomSalary) "সরকারি নিয়মে স্বয়ংক্রিয় হিসাব (লকড):" else "ভাতাসমূহ (Allowances):",
+                        text = if (!isCustomSalary) {
+                            if (isBn) "সরকারি নিয়মে স্বয়ংক্রিয় হিসাব (লকড):" else "Automatic Breakdown (Locked):"
+                        } else {
+                            if (isBn) "ভাতাসমূহ (Allowances):" else "Allowances:"
+                        },
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp
                     )
@@ -605,7 +617,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = autoResult.basicSalary.toInt().toString(),
                             onValueChange = {},
-                            label = { Text("মূল বেতন (Basic Salary - লকড)") },
+                            label = { Text(if (isBn) "মূল বেতন (Basic Salary - লকড)" else "Basic Salary (Locked)") },
                             enabled = false,
                             modifier = Modifier.fillMaxWidth().testTag("locked_basic_salary_input"),
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.outline) },
@@ -620,7 +632,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = if (isCustomSalary) houseRentText else autoResult.houseRent.toInt().toString(),
                             onValueChange = { if (isCustomSalary) houseRentText = it },
-                            label = { Text("বাড়িভাড়া (House Rent)") },
+                            label = { Text(if (isBn) "বাড়িভাড়া (House Rent)" else "House Rent") },
                             enabled = isCustomSalary,
                             modifier = Modifier.weight(1f).testTag("house_rent_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -629,7 +641,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = if (isCustomSalary) medicalText else "750",
                             onValueChange = { if (isCustomSalary) medicalText = it },
-                            label = { Text("চিকিৎসা ভাতা (Fixed ৳ ৭৫০)") },
+                            label = { Text(if (isBn) "চিকিৎসা ভাতা (Fixed ৳ ৭৫০)" else "Medical Allowance (Fixed ৳ 750)") },
                             enabled = isCustomSalary,
                             modifier = Modifier.weight(1f).testTag("medical_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -644,7 +656,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = if (isCustomSalary) conveyanceText else autoResult.conveyanceAllowance.toInt().toString(),
                             onValueChange = { if (isCustomSalary) conveyanceText = it },
-                            label = { Text("যাতায়াত ভাতা") },
+                            label = { Text(if (isBn) "যাতায়াত ভাতা" else "Conveyance Allowance") },
                             enabled = isCustomSalary,
                             modifier = Modifier.weight(1f).testTag("conveyance_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -653,7 +665,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = if (isCustomSalary) foodText else autoResult.foodAllowance.toInt().toString(),
                             onValueChange = { if (isCustomSalary) foodText = it },
-                            label = { Text("খাদ্য ভাতা") },
+                            label = { Text(if (isBn) "খাদ্য ভাতা" else "Food Allowance") },
                             enabled = isCustomSalary,
                             modifier = Modifier.weight(1f).testTag("food_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -669,7 +681,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = nightBillRateText,
                             onValueChange = { nightBillRateText = it },
-                            label = { Text("নাইট বিল (প্রতি রাত ৳)") },
+                            label = { Text(if (isBn) "নাইট বিল (প্রতি রাত ৳)" else "Night Bill (Per Night ৳)") },
                             modifier = Modifier.weight(1f).testTag("night_rate_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true
@@ -677,7 +689,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = tiffinBillRateText,
                             onValueChange = { tiffinBillRateText = it },
-                            label = { Text("টিফিন বিল (প্রতি দিন ৳)") },
+                            label = { Text(if (isBn) "টিফিন বিল (প্রতি দিন ৳)" else "Tiffin Bill (Per Day ৳)") },
                             modifier = Modifier.weight(1f).testTag("tiffin_rate_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true
@@ -687,7 +699,7 @@ fun ProfileScreen(
                     OutlinedTextField(
                         value = attendanceBonusText,
                         onValueChange = { attendanceBonusText = it },
-                        label = { Text("হাজিরা বোনাস (৳)") },
+                        label = { Text(if (isBn) "হাজিরা বোনাস (৳)" else "Attendance Bonus (৳)") },
                         modifier = Modifier.fillMaxWidth().testTag("attendance_bonus_input"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true
@@ -701,13 +713,17 @@ fun ProfileScreen(
                                 maxAbsentForBonusText = input
                             }
                         },
-                        label = { Text("হাজিরা বোনাস কাটার শর্ত (অনুপস্থিতির দিন)") },
+                        label = { Text(if (isBn) "হাজিরা বোনাস কাটার শর্ত (অনুপস্থিতির দিন)" else "Bonus Deduction Threshold (Absent Days)") },
                         modifier = Modifier.fillMaxWidth().testTag("max_absent_bonus_input"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         supportingText = {
                             Text(
-                                text = "আপনার অফিসের নিয়মানুযায়ী লিখুন (যেমন: ৩ দিন দিলে ৩ দিন পর্যন্ত বোনাস অক্ষত থাকবে, ৪র্থ দিন থেকে বাতিল হবে)।",
+                                text = if (isBn) {
+                                    "আপনার অফিসের নিয়মানুযায়ী লিখুন (যেমন: ৩ দিন দিলে ৩ দিন পর্যন্ত বোনাস অক্ষত থাকবে, ৪র্থ দিন থেকে বাতিল হবে)।"
+                                } else {
+                                    "Enter according to company policy (e.g. 3 days: bonus remains intact up to 3 absent days, cancelled on 4th day)."
+                                },
                                 fontSize = 11.sp
                             )
                         },
@@ -721,11 +737,11 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = customOtRateText,
                             onValueChange = { customOtRateText = it },
-                            label = { Text("কাস্টম ওটি রেট (প্রতি ঘণ্টা ৳)") },
+                            label = { Text(if (isBn) "কাস্টম ওটি রেট (প্রতি ঘণ্টা ৳)" else "Custom OT Rate (Per Hour ৳)") },
                             modifier = Modifier.fillMaxWidth().testTag("custom_ot_rate_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
-                            supportingText = { Text("০ রাখলে স্বয়ংক্রিয় মূল বেতন/১০৪ রেট প্রযোজ্য হবে") }
+                            supportingText = { Text(if (isBn) "০ রাখলে স্বয়ংক্রিয় মূল বেতন/১০৪ রেট প্রযোজ্য হবে" else "Set 0 to use automatic Basic/104 formula") }
                         )
                     }
 
@@ -744,12 +760,12 @@ fun ProfileScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "কার্যকর ওটি রেট:",
+                                    text = if (isBn) "কার্যকর ওটি রেট:" else "Effective OT Rate:",
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
-                                    text = LaborLawCalculator.formatCurrency(effectiveHourlyOtRate, isBn) + " / ঘণ্টা",
+                                    text = LaborLawCalculator.formatCurrency(effectiveHourlyOtRate, isBn) + (if (isBn) " / ঘণ্টা" else " / hr"),
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -757,7 +773,7 @@ fun ProfileScreen(
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "মোট গ্রস সাধারণ বেতন:",
+                                    text = if (isBn) "মোট গ্রস সাধারণ বেতন:" else "Total Gross Regular Salary:",
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -819,7 +835,7 @@ fun ProfileScreen(
                         supportWhatsapp = whatsappNumber.trim()
                     )
                     onSaveProfile(updated)
-                    Toast.makeText(context, "প্রোফাইল ও বেতন সেটিংস সংরক্ষিত হয়েছে!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, if (isBn) "প্রোফাইল ও বেতন সেটিংস সংরক্ষিত হয়েছে!" else "Profile & salary settings saved!", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -827,7 +843,7 @@ fun ProfileScreen(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("সকল সেটিংস সংরক্ষণ করুন", fontWeight = FontWeight.Bold)
+                Text(if (isBn) "সকল সেটিংস সংরক্ষণ করুন" else "Save All Settings", fontWeight = FontWeight.Bold)
             }
         }
 
@@ -843,7 +859,7 @@ fun ProfileScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("সেটিংস ও সহায়তা (Settings & Support)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    Text(if (isBn) "সেটিংস ও সহায়তা (Settings & Support)" else "Settings & Support", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
 
                     // Recycle Bin / Trash Option
                     Card(
@@ -879,12 +895,12 @@ fun ProfileScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "রিসাইকেল বিন (Trash)",
+                                        text = if (isBn) "রিসাইকেল বিন (Trash)" else "Recycle Bin (Trash)",
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
-                                        text = "ডিলিট করা ওটি ও পিস রেট ১ দিন জমা থাকে",
+                                        text = if (isBn) "ডিলিট করা ওটি ও পিস রেট ১ দিন জমা থাকে" else "Deleted records are kept for 1 day",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -897,7 +913,7 @@ fun ProfileScreen(
                                         color = MaterialTheme.colorScheme.error
                                     ) {
                                         Text(
-                                            text = "${trashItems.size}টি",
+                                            text = if (isBn) "${trashItems.size}টি" else "${trashItems.size} items",
                                             color = MaterialTheme.colorScheme.onError,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
@@ -923,14 +939,14 @@ fun ProfileScreen(
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(whatsappUrl))
                                 context.startActivity(intent)
                             } catch (e: Exception) {
-                                Toast.makeText(context, "হোয়াটসঅ্যাপ ওপেন করা যায়নি। লিংক: $whatsappUrl", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, if (isBn) "হোয়াটসঅ্যাপ ওপেন করা যায়নি। লিংক: $whatsappUrl" else "Could not open WhatsApp. Link: $whatsappUrl", Toast.LENGTH_LONG).show()
                             }
                         },
                         modifier = Modifier.fillMaxWidth().testTag("whatsapp_help_button")
                     ) {
                         Icon(Icons.Default.SupportAgent, contentDescription = null, tint = SuccessGreen)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("হোয়াটসঅ্যাপে সরাসরি সাহায্য নিন", color = SuccessGreen, fontWeight = FontWeight.Bold)
+                        Text(if (isBn) "হোয়াটসঅ্যাপে সরাসরি সাহায্য নিন" else "Get Direct WhatsApp Support", color = SuccessGreen, fontWeight = FontWeight.Bold)
                     }
 
                     // Privacy Policy Button
@@ -949,7 +965,7 @@ fun ProfileScreen(
                     ) {
                         Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("গোপনীয়তা নীতিমালা (Privacy Policy) দেখুন")
+                        Text(if (isBn) "গোপনীয়তা নীতিমালা (Privacy Policy) দেখুন" else "View Privacy Policy")
                     }
                 }
             }
@@ -990,7 +1006,7 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text("অ্যাপের ভাষা", fontWeight = FontWeight.SemiBold)
+                                Text(if (isBn) "অ্যাপের ভাষা" else "App Language", fontWeight = FontWeight.SemiBold)
                                 Text(if (isBn) "বর্তমান: বাংলা" else "Current: English", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Button(onClick = onToggleLanguage) {
@@ -1077,7 +1093,7 @@ fun ProfileScreen(
             },
             confirmButton = {
                 Button(onClick = { showSettingsDialog = false }) {
-                    Text("সম্পন্ন")
+                    Text(if (isBn) "সম্পন্ন" else "Done")
                 }
             }
         )
@@ -1130,17 +1146,18 @@ fun ProfileScreen(
     if (showTrashDialog) {
         TrashManagementDialog(
             trashItems = trashItems,
+            isBn = isBn,
             onRestore = { item ->
                 onRestoreTrash(item)
-                Toast.makeText(context, "রেকর্ডটি সফলভাবে রিস্টোর করা হয়েছে!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, if (isBn) "রেকর্ডটি সফলভাবে রিস্টোর করা হয়েছে!" else "Record restored successfully!", Toast.LENGTH_SHORT).show()
             },
             onDeletePermanently = { item ->
                 onDeleteTrashPermanently(item)
-                Toast.makeText(context, "রেকর্ডটি স্থায়ীভাবে মুছে ফেলা হয়েছে", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, if (isBn) "রেকর্ডটি স্থায়ীভাবে মুছে ফেলা হয়েছে" else "Record permanently deleted", Toast.LENGTH_SHORT).show()
             },
             onClearAll = {
                 onClearAllTrash()
-                Toast.makeText(context, "রিসাইকেল বিন সম্পূর্ণ খালি করা হয়েছে", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, if (isBn) "রিসাইকেল বিন সম্পূর্ণ খালি করা হয়েছে" else "Recycle bin emptied completely", Toast.LENGTH_SHORT).show()
             },
             onDismiss = { showTrashDialog = false }
         )
@@ -1150,6 +1167,7 @@ fun ProfileScreen(
 @Composable
 fun TrashManagementDialog(
     trashItems: List<com.example.data.model.TrashItem>,
+    isBn: Boolean = true,
     onRestore: (com.example.data.model.TrashItem) -> Unit,
     onDeletePermanently: (com.example.data.model.TrashItem) -> Unit,
     onClearAll: () -> Unit,
@@ -1173,11 +1191,11 @@ fun TrashManagementDialog(
                         tint = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("রিসাইকেল বিন (Trash)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(if (isBn) "রিসাইকেল বিন (Trash)" else "Recycle Bin (Trash)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
                 if (trashItems.isNotEmpty()) {
                     TextButton(onClick = { showClearAllConfirm = true }) {
-                        Text("সব মুছুন", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (isBn) "সব মুছুন" else "Empty All", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1190,7 +1208,11 @@ fun TrashManagementDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "ডিলিট করা রেকর্ডগুলো এখানে ১ দিন (২৪ ঘণ্টা) জমা থাকে। এর মধ্যে রিস্টোর না করলে তা স্বয়ংক্রিয়ভাবে চিরতরে মুছে যাবে।",
+                    text = if (isBn) {
+                        "ডিলিট করা রেকর্ডগুলো এখানে ১ দিন (২৪ ঘণ্টা) জমা থাকে। এর মধ্যে রিস্টোর না করলে তা স্বয়ংক্রিয়ভাবে চিরতরে মুছে যাবে।"
+                    } else {
+                        "Deleted records are stored here for 1 day (24 hours). If not restored within this time, they will be permanently deleted."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1212,13 +1234,13 @@ fun TrashManagementDialog(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "রিসাইকেল বিন সম্পূর্ণ খালি!",
+                                text = if (isBn) "রিসাইকেল বিন সম্পূর্ণ খালি!" else "Recycle Bin is completely empty!",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "কোনো ডিলিট করা ওটি বা পিস রেট নেই",
+                                text = if (isBn) "কোনো ডিলিট করা ওটি বা পিস রেট নেই" else "No deleted overtime or piece rate records",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
@@ -1251,7 +1273,11 @@ fun TrashManagementDialog(
                                             color = if (item.itemType == "OT") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
                                         ) {
                                             Text(
-                                                text = if (item.itemType == "OT") "ওভারটাইম" else "পিস রেট",
+                                                text = if (item.itemType == "OT") {
+                                                    if (isBn) "ওভারটাইম" else "Overtime"
+                                                } else {
+                                                    if (isBn) "পিস রেট" else "Piece Rate"
+                                                },
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if (item.itemType == "OT") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
@@ -1260,7 +1286,7 @@ fun TrashManagementDialog(
                                         }
 
                                         Text(
-                                            text = "বাকি: $remainingHours ঘণ্টা",
+                                            text = if (isBn) "বাকি: $remainingHours ঘণ্টা" else "$remainingHours hrs left",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.error,
                                             fontWeight = FontWeight.SemiBold
@@ -1268,13 +1294,15 @@ fun TrashManagementDialog(
                                     }
 
                                     Spacer(modifier = Modifier.height(4.dp))
+                                    val displayTitle = if (isBn) item.title else item.title.replace("ওভারটাইম:", "Overtime:").replace("পিস রেট:", "Piece Rate:")
+                                    val displaySubtitle = if (isBn) item.subtitle else item.subtitle.replace("ঘণ্টা", "hrs").replace("পিস", "pcs")
                                     Text(
-                                        text = item.title,
+                                        text = displayTitle,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = item.subtitle,
+                                        text = displaySubtitle,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1295,7 +1323,7 @@ fun TrashManagementDialog(
                                                 tint = MaterialTheme.colorScheme.error
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("স্থায়ী মুছুন", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                                            Text(if (isBn) "স্থায়ী মুছুন" else "Delete Permanently", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                                         }
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Button(
@@ -1310,7 +1338,7 @@ fun TrashManagementDialog(
                                                 modifier = Modifier.size(16.dp)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("রিস্টোর", fontSize = 12.sp)
+                                            Text(if (isBn) "রিস্টোর" else "Restore", fontSize = 12.sp)
                                         }
                                     }
                                 }
@@ -1322,7 +1350,7 @@ fun TrashManagementDialog(
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("বন্ধ করুন")
+                Text(if (isBn) "বন্ধ করুন" else "Close")
             }
         }
     )
@@ -1331,8 +1359,8 @@ fun TrashManagementDialog(
     if (itemToDeletePermanently != null) {
         AlertDialog(
             onDismissRequest = { itemToDeletePermanently = null },
-            title = { Text("স্থায়ীভাবে মুছে ফেলবেন?") },
-            text = { Text("এই রেকর্ডটি চিরতরে মুছে ফেলা হবে এবং আর ফিরিয়ে আনা যাবে না।") },
+            title = { Text(if (isBn) "স্থায়ীভাবে মুছে ফেলবেন?" else "Delete permanently?") },
+            text = { Text(if (isBn) "এই রেকর্ডটি চিরতরে মুছে ফেলা হবে এবং আর ফিরিয়ে আনা যাবে না।" else "This record will be permanently deleted and cannot be restored.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1341,12 +1369,12 @@ fun TrashManagementDialog(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("স্থায়ী মুছুন")
+                    Text(if (isBn) "স্থায়ী মুছুন" else "Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { itemToDeletePermanently = null }) {
-                    Text("বাতিল")
+                    Text(if (isBn) "বাতিল" else "Cancel")
                 }
             }
         )
@@ -1356,8 +1384,8 @@ fun TrashManagementDialog(
     if (showClearAllConfirm) {
         AlertDialog(
             onDismissRequest = { showClearAllConfirm = false },
-            title = { Text("রিসাইকেল বিন খালি করবেন?") },
-            text = { Text("ট্র্যাশের সকল রেকর্ড চিরতরে মুছে যাবে। আপনি কি নিশ্চিত?") },
+            title = { Text(if (isBn) "রিসাইকেল বিন খালি করবেন?" else "Empty Recycle Bin?") },
+            text = { Text(if (isBn) "ট্র্যাশের সকল রেকর্ড চিরতরে মুছে যাবে। আপনি কি নিশ্চিত?" else "All records in trash will be permanently deleted. Are you sure?") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1366,12 +1394,12 @@ fun TrashManagementDialog(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("সব মুছুন")
+                    Text(if (isBn) "সব মুছুন" else "Empty All")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearAllConfirm = false }) {
-                    Text("বাতিল")
+                    Text(if (isBn) "বাতিল" else "Cancel")
                 }
             }
         )

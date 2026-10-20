@@ -18,18 +18,26 @@ class NotificationReceiver : BroadcastReceiver() {
         val reminderType = intent?.getIntExtra("REMINDER_TYPE", 1) ?: 1
         ReminderScheduler.createNotificationChannel(context)
 
+        val isBn = try {
+            val db = com.example.data.local.AppDatabase.getDatabase(context)
+            val profile = kotlinx.coroutines.runBlocking { db.userProfileDao().getUserProfileOnce() }
+            profile?.language != "en"
+        } catch (_: Exception) {
+            true
+        }
+
         val (title, body, subText, reqCode, openQuickOt) = when (reminderType) {
             1 -> Tuple(
-                "🕒 আজকের ওভারটাইম এন্ট্রি করুন এখনই ✅",
-                "আজ কত ঘণ্টা ওভারটাইম করেছেন? এখনই এন্ট্রি করে আজকের অতিরিক্ত আয়ের হিসাব দেখে নিন। 💰",
-                "দৈনিক ওভারটাইম রিমাইন্ডার • Overtime Tracker BD",
+                if (isBn) "🕒 আজকের ওভারটাইম এন্ট্রি করুন এখনই ✅" else "🕒 Log Today's Overtime Now ✅",
+                if (isBn) "আজ কত ঘণ্টা ওভারটাইম করেছেন? এখনই এন্ট্রি করে আজকের অতিরিক্ত আয়ের হিসাব দেখে নিন। 💰" else "How many hours of overtime did you do today? Log now to check your extra earnings. 💰",
+                if (isBn) "দৈনিক ওভারটাইম রিমাইন্ডার • Overtime Tracker BD" else "Daily Overtime Reminder • Overtime Tracker BD",
                 1001,
                 true
             )
             else -> Tuple(
-                "🌙 আজকের ডিউটি ও ওটি হিসাব যাচাই করুন",
-                "আজকের ডিউটি, ওভারটাইম এন্ট্রি কি সম্পন্ন হয়েছে? মাসিক বেতন নির্ভুল রাখতে এখনই রেকর্ড যাচাই করুন। ✍️",
-                "দৈনিক হিসাব যাচাই • Overtime Tracker BD",
+                if (isBn) "🌙 আজকের ডিউটি ও ওটি হিসাব যাচাই করুন" else "🌙 Verify Today's Duty & OT Record",
+                if (isBn) "আজকের ডিউটি, ওভারটাইম এন্ট্রি কি সম্পন্ন হয়েছে? মাসিক বেতন নির্ভুল রাখতে এখনই রেকর্ড যাচাই করুন। ✍️" else "Have you logged your duty and overtime for today? Check records now to ensure accurate wages. ✍️",
+                if (isBn) "দৈনিক হিসাব যাচাই • Overtime Tracker BD" else "Daily Duty Check • Overtime Tracker BD",
                 1002,
                 false
             )

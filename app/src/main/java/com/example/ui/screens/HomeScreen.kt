@@ -99,7 +99,7 @@ fun HomeScreen(
                             )
                         } else {
                             Text(
-                                text = "প্রোফাইল থেকে তথ্য সেট করুন",
+                                text = if (isBn) "প্রোফাইল থেকে তথ্য সেট করুন" else "Set info from profile",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -201,7 +201,11 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = if (profile.isCustomSalary) "কাস্টম নিয়ম" else "শ্রম আইন ২০০৬",
+                                    text = if (profile.isCustomSalary) {
+                                        if (isBn) "কাস্টম নিয়ম" else "Custom Rules"
+                                    } else {
+                                        if (isBn) "শ্রম আইন ২০০৬" else "Labor Law 2006"
+                                    },
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -233,7 +237,7 @@ fun HomeScreen(
                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                                 )
                                 Text(
-                                    text = "${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ঘণ্টা",
+                                    text = "${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ${if (isBn) "ঘণ্টা" else "hrs"}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimary
@@ -258,7 +262,7 @@ fun HomeScreen(
                             // Hourly Rate
                             Column {
                                 Text(
-                                    text = "প্রতি ঘণ্টা রেট",
+                                    text = if (isBn) "প্রতি ঘণ্টা রেট" else "Hourly Rate",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                                 )
@@ -314,7 +318,7 @@ fun HomeScreen(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             modifier = Modifier.testTag("edit_target_button")
                         ) {
-                            Text("টার্গেট পরিবর্তন", fontSize = 12.sp)
+                            Text(if (isBn) "টার্গেট পরিবর্তন" else "Change Target", fontSize = 12.sp)
                         }
                     }
 
@@ -334,12 +338,16 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "অর্জিত: ${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} / ${LaborLawCalculator.formatNumber(summary.targetHours, isBn, 0)} ঘণ্টা",
+                            text = if (isBn) {
+                                "অর্জিত: ${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} / ${LaborLawCalculator.formatNumber(summary.targetHours, isBn, 0)} ঘণ্টা"
+                            } else {
+                                "Earned: ${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} / ${LaborLawCalculator.formatNumber(summary.targetHours, isBn, 0)} hrs"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "${(summary.targetProgress * 100).toInt()}% পূরণ",
+                            text = if (isBn) "${(summary.targetProgress * 100).toInt()}% পূরণ" else "${(summary.targetProgress * 100).toInt()}% completed",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -348,19 +356,23 @@ fun HomeScreen(
 
                     if (summary.targetHours <= 0) {
                         Text(
-                            text = "কোনো লক্ষ্যমাত্রা নির্ধারণ করা নেই।",
+                            text = if (isBn) "কোনো লক্ষ্যমাত্রা নির্ধারণ করা নেই।" else "No monthly target set.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else if (summary.remainingTargetHours > 0) {
                         Text(
-                            text = "টার্গেট পূরণ করতে এখনও ${LaborLawCalculator.formatNumber(summary.remainingTargetHours, isBn)} ঘণ্টা ওটি প্রয়োজন।",
+                            text = if (isBn) {
+                                "টার্গেট পূরণ করতে এখনও ${LaborLawCalculator.formatNumber(summary.remainingTargetHours, isBn)} ঘণ্টা ওটি প্রয়োজন।"
+                            } else {
+                                "${LaborLawCalculator.formatNumber(summary.remainingTargetHours, isBn)} hrs needed to achieve target."
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
                         Text(
-                            text = "অভিনন্দন! আপনার মাসিক ওটি লক্ষ্যমাত্রা সফলভাবে পূরণ হয়েছে!",
+                            text = if (isBn) "অভিনন্দন! আপনার মাসিক ওটি লক্ষ্যমাত্রা সফলভাবে পূরণ হয়েছে!" else "Congratulations! Monthly OT target achieved!",
                             style = MaterialTheme.typography.labelSmall,
                             color = SuccessGreen,
                             fontWeight = FontWeight.Bold
@@ -413,7 +425,7 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                text = "আজকের ওটি সময়, নাইট ও টিফিন বিল যোগ করুন",
+                                text = if (isBn) "আজকের ওটি সময়, নাইট ও টিফিন বিল যোগ করুন" else "Add today's OT hours, night & tiffin bill",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                             )
@@ -449,9 +461,13 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("হাজিরা বোনাস", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(if (isBn) "হাজিরা বোনাস" else "Attendance Bonus", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
-                                    text = if (isBonusEarned) "অর্জিত" else if (summary.absentDays > 0) "বাতিল" else "০",
+                                    text = if (isBonusEarned) {
+                                        if (isBn) "অর্জিত" else "Earned"
+                                    } else if (summary.absentDays > 0) {
+                                        if (isBn) "বাতিল" else "Lost"
+                                    } else "0",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isBonusEarned) SuccessGreen else if (summary.absentDays > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
@@ -474,7 +490,15 @@ fun HomeScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("নাইট বিল (${LaborLawCalculator.formatNumber(summary.nightBillCount.toDouble(), isBn, 0)}টি)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = if (isBn) {
+                                    "নাইট বিল (${LaborLawCalculator.formatNumber(summary.nightBillCount.toDouble(), isBn, 0)}টি)"
+                                } else {
+                                    "Night Bill (${LaborLawCalculator.formatNumber(summary.nightBillCount.toDouble(), isBn, 0)})"
+                                },
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = LaborLawCalculator.formatCurrency(summary.nightBillTotal, isBn),
@@ -498,7 +522,15 @@ fun HomeScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("টিফিন বিল (${LaborLawCalculator.formatNumber(summary.tiffinBillCount.toDouble(), isBn, 0)}টি)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = if (isBn) {
+                                    "টিফিন বিল (${LaborLawCalculator.formatNumber(summary.tiffinBillCount.toDouble(), isBn, 0)}টি)"
+                                } else {
+                                    "Tiffin Bill (${LaborLawCalculator.formatNumber(summary.tiffinBillCount.toDouble(), isBn, 0)})"
+                                },
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = LaborLawCalculator.formatCurrency(summary.tiffinBillTotal, isBn),
@@ -516,7 +548,7 @@ fun HomeScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("পিস রেট আয়", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (isBn) "পিস রেট আয়" else "Piece Rate", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = LaborLawCalculator.formatCurrency(summary.totalPieceAmount, isBn),
@@ -538,12 +570,12 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "সাম্প্রতিক ওটি এন্ট্রি",
+                    text = if (isBn) "সাম্প্রতিক ওটি এন্ট্রি" else "Recent OT Entries",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 TextButton(onClick = onViewAllClick) {
-                    Text("সব দেখুন")
+                    Text(if (isBn) "সব দেখুন" else "View All")
                 }
             }
         }
@@ -571,7 +603,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "এই মাসে এখনও কোনো ওটি যোগ করা হয়নি",
+                                text = if (isBn) "এই মাসে এখনও কোনো ওটি যোগ করা হয়নি" else "No OT records added for this month yet",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -617,7 +649,7 @@ fun HomeScreen(
                                 isAbsent -> if (isBn) "অনুপ" else "Abs"
                                 isLeave -> if (isBn) "ছুটি" else "Leave"
                                 isWeeklyOff -> if (isBn) "বন্ধ" else "Off"
-                                else -> "${LaborLawCalculator.formatNumber(record.otHours, isBn)}ঘ"
+                                else -> "${LaborLawCalculator.formatNumber(record.otHours, isBn)}${if (isBn) "ঘ" else "h"}"
                             }
 
                             Surface(
@@ -650,10 +682,10 @@ fun HomeScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     if (record.hasNightBill) {
-                                        Text("• নাইট", fontSize = 10.sp, color = NightBlue, fontWeight = FontWeight.Bold)
+                                        Text(if (isBn) "• নাইট" else "• Night", fontSize = 10.sp, color = NightBlue, fontWeight = FontWeight.Bold)
                                     }
                                     if (record.hasTiffinBill) {
-                                        Text("• টিফিন", fontSize = 10.sp, color = WarningOrange, fontWeight = FontWeight.Bold)
+                                        Text(if (isBn) "• টিফিন" else "• Tiffin", fontSize = 10.sp, color = WarningOrange, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }

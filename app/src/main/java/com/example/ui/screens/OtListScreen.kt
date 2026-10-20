@@ -81,7 +81,7 @@ fun OtListScreen(
                                 Icon(Icons.Default.ChevronLeft, contentDescription = "Previous Month")
                             }
                             Text(
-                                text = "ওটি খাতা • $selectedMonth",
+                                text = if (isBn) "ওটি খাতা • $selectedMonth" else "OT Records • $selectedMonth",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -100,22 +100,26 @@ fun OtListScreen(
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("মোট দিন", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${LaborLawCalculator.formatNumber(records.size.toDouble(), isBn, 0)} দিন", fontWeight = FontWeight.Bold)
+                                Text(if (isBn) "মোট দিন" else "Total Days", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${LaborLawCalculator.formatNumber(records.size.toDouble(), isBn, 0)} ${if (isBn) "দিন" else "days"}", fontWeight = FontWeight.Bold)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("মোট ওটি ঘণ্টা", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${LaborLawCalculator.formatNumber(totalHours, isBn)} ঘণ্টা", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                Text(if (isBn) "মোট ওটি ঘণ্টা" else "Total OT Hours", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${LaborLawCalculator.formatNumber(totalHours, isBn)} ${if (isBn) "ঘণ্টা" else "hrs"}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("ওটি টাকা", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(if (isBn) "ওটি টাকা" else "OT Amount", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(LaborLawCalculator.formatCurrency(totalAmount, isBn), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("হাজিরা বোনাস", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(if (isBn) "হাজিরা বোনাস" else "Attendance Bonus", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 val isBonusEarned = attendanceBonus > 0
                                 Text(
-                                    text = if (isBonusEarned) "অর্জিত ✅" else if (absentCount > 0) "কর্তন ❌" else "০",
+                                    text = if (isBonusEarned) {
+                                        if (isBn) "অর্জিত ✅" else "Earned ✅"
+                                    } else if (absentCount > 0) {
+                                        if (isBn) "কর্তন ❌" else "Deducted ❌"
+                                    } else "0",
                                     fontWeight = FontWeight.Bold,
                                     color = if (isBonusEarned) SuccessGreen else if (absentCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -142,13 +146,13 @@ fun OtListScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "এই মাসে এখনও কোনো ওটি রেকর্ড নেই",
+                                text = if (isBn) "এই মাসে এখনও কোনো ওটি রেকর্ড নেই" else "No OT records found for this month",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "নিচের '+' বাটনে ট্যাপ করে নতুন ওটি যোগ করুন",
+                                text = if (isBn) "নিচের '+' বাটনে ট্যাপ করে নতুন ওটি যোগ করুন" else "Tap the '+' button below to add a new OT record",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                             )
@@ -192,7 +196,7 @@ fun OtListScreen(
                                         isAbsent -> if (isBn) "অনুপস্থিত" else "Absent"
                                         isLeave -> if (isBn) "ছুটি" else "Leave"
                                         isWeeklyOff -> if (isBn) "সাপ্তাহিক ছুটি" else "Off Day"
-                                        else -> "${LaborLawCalculator.formatNumber(record.otHours, isBn)} ঘণ্টা"
+                                        else -> "${LaborLawCalculator.formatNumber(record.otHours, isBn)} ${if (isBn) "ঘণ্টা" else "hrs"}"
                                     }
 
                                     Surface(
@@ -277,7 +281,7 @@ fun OtListScreen(
                                             color = NightBlue.copy(alpha = 0.15f)
                                         ) {
                                             Text(
-                                                text = "🌙 নাইট বিল",
+                                                text = if (isBn) "🌙 নাইট বিল" else "🌙 Night Bill",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = NightBlue,
@@ -291,7 +295,7 @@ fun OtListScreen(
                                             color = WarningOrange.copy(alpha = 0.15f)
                                         ) {
                                             Text(
-                                                text = "☕ টিফিন বিল",
+                                                text = if (isBn) "☕ টিফিন বিল" else "☕ Tiffin Bill",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = WarningOrange,
@@ -305,7 +309,7 @@ fun OtListScreen(
                                             color = MaterialTheme.colorScheme.tertiaryContainer
                                         ) {
                                             Text(
-                                                text = "🎉 ছুটির দিন",
+                                                text = if (isBn) "🎉 ছুটির দিন" else "🎉 Holiday",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -352,8 +356,8 @@ fun OtListScreen(
     if (recordToDelete != null) {
         AlertDialog(
             onDismissRequest = { recordToDelete = null },
-            title = { Text("ওটি রেকর্ড মুছবেন?") },
-            text = { Text("এই ওটি রেকর্ডটি রিসাইকেল বিন (Trash)-এ চলে যাবে। সেখানে এটি ১ দিন জমা থাকবে এবং আপনি চাইলে যেকোনো সময় ফিরিয়ে আনতে পারবেন।") },
+            title = { Text(if (isBn) "ওটি রেকর্ড মুছবেন?" else "Delete OT Record?") },
+            text = { Text(if (isBn) "এই ওটি রেকর্ডটি রিসাইকেল বিন (Trash)-এ চলে যাবে। সেখানে এটি ১ দিন জমা থাকবে এবং আপনি চাইলে যেকোনো সময় ফিরিয়ে আনতে পারবেন।" else "This OT record will be moved to Recycle Bin (Trash), where it will be stored for 1 day and can be restored anytime.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -362,12 +366,12 @@ fun OtListScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("মুছে ফেলুন")
+                    Text(if (isBn) "মুছে ফেলুন" else "Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { recordToDelete = null }) {
-                    Text("বাতিল")
+                    Text(if (isBn) "বাতিল" else "Cancel")
                 }
             }
         )

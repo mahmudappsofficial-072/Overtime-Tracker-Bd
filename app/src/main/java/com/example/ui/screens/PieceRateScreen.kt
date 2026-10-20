@@ -75,14 +75,14 @@ fun PieceRateScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("পিস রেট খাতা", fontWeight = FontWeight.Bold) },
+                    text = { Text(if (isBn) "পিস রেট খাতা" else "Piece Rate", fontWeight = FontWeight.Bold) },
                     icon = { Icon(Icons.Default.Inventory2, contentDescription = null) },
                     modifier = Modifier.testTag("piece_tab_button")
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("বেতন পে-স্লিপ", fontWeight = FontWeight.Bold) },
+                    text = { Text(if (isBn) "বেতন পে-স্লিপ" else "Pay Slip", fontWeight = FontWeight.Bold) },
                     icon = { Icon(Icons.Default.ReceiptLong, contentDescription = null) },
                     modifier = Modifier.testTag("slip_tab_button")
                 )
@@ -104,7 +104,7 @@ fun PieceRateScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    text = "পিস রেট সারসংক্ষেপ • $selectedMonth",
+                                    text = if (isBn) "পিস রেট সারসংক্ষেপ • $selectedMonth" else "Piece Rate Summary • $selectedMonth",
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -115,16 +115,16 @@ fun PieceRateScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column {
-                                        Text("মোট উৎপাদিত পিস", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                        Text(if (isBn) "মোট উৎপাদিত পিস" else "Total Produced Pieces", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                                         Text(
-                                            text = "${LaborLawCalculator.formatNumber(totalPieces.toDouble(), isBn, 0)} পিস",
+                                            text = "${LaborLawCalculator.formatNumber(totalPieces.toDouble(), isBn, 0)} ${if (isBn) "পিস" else "pcs"}",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 18.sp,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
-                                        Text("মোট পিস রেট আয়", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                        Text(if (isBn) "মোট পিস রেট আয়" else "Total Piece Income", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                                         Text(
                                             text = LaborLawCalculator.formatCurrency(totalPieceAmount, isBn),
                                             fontWeight = FontWeight.Bold,
@@ -154,13 +154,13 @@ fun PieceRateScreen(
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
-                                        text = "এই মাসে কোনো পিস কাজের হিসাব নেই",
+                                        text = if (isBn) "এই মাসে কোনো পিস কাজের হিসাব নেই" else "No piece work records for this month",
                                         style = MaterialTheme.typography.titleMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "অপারেটর ও শ্রমিক ভাইদের কাজের পিস হিসেব যোগ করুন '+' বাটন চেপে",
+                                        text = if (isBn) "অপারেটর ও শ্রমিক ভাইদের কাজের পিস হিসেব যোগ করুন '+' বাটন চেপে" else "Tap '+' button below to add piece work records",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                                     )
@@ -189,7 +189,7 @@ fun PieceRateScreen(
                                             style = MaterialTheme.typography.bodyLarge
                                         )
                                         Text(
-                                            text = "${item.date} • ${LaborLawCalculator.formatNumber(item.pieceCount.toDouble(), isBn, 0)} পিস × ${LaborLawCalculator.formatCurrency(item.ratePerPiece, isBn)}",
+                                            text = "${item.date} • ${LaborLawCalculator.formatNumber(item.pieceCount.toDouble(), isBn, 0)} ${if (isBn) "পিস" else "pcs"} × ${LaborLawCalculator.formatCurrency(item.ratePerPiece, isBn)}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -267,7 +267,7 @@ fun PieceRateScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "মাসিক বেতন ও ওভারটাইম স্লিপ • $selectedMonth",
+                                        text = if (isBn) "মাসিক বেতন ও ওভারটাইম স্লিপ • $selectedMonth" else "Monthly Salary & OT Slip • $selectedMonth",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -281,11 +281,11 @@ fun PieceRateScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column {
-                                        Text("শ্রমিক নাম: ${profile.userName}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                        Text("আইডি: ${profile.workerId}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                        Text(if (isBn) "শ্রমিক নাম: ${profile.userName}" else "Worker: ${profile.userName}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                        Text(if (isBn) "আইডি: ${profile.workerId}" else "ID: ${profile.workerId}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
-                                        Text("পদবি: ${profile.designation}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                        Text(if (isBn) "পদবি: ${profile.designation}" else "Designation: ${profile.designation}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                                         Text(profile.grade, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                                     }
                                 }
@@ -294,7 +294,7 @@ fun PieceRateScreen(
 
                                 // Attendance & Shift Summary
                                 Text(
-                                    text = "হাজিরা ও শিফট বিবরণ:",
+                                    text = if (isBn) "হাজিরা ও শিফট বিবরণ:" else "Attendance & Shift Summary:",
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleSmall
                                 )
@@ -304,66 +304,88 @@ fun PieceRateScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("মোট ডিউটি: ${LaborLawCalculator.formatNumber(totalDutyDays.toDouble(), isBn, 0)} দিন", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("নাইট শিফট: ${LaborLawCalculator.formatNumber(summary.nightShiftDays.toDouble(), isBn, 0)} দিন", fontSize = 12.sp, color = NightBlue, fontWeight = FontWeight.SemiBold)
+                                    Text(if (isBn) "মোট ডিউটি: ${LaborLawCalculator.formatNumber(totalDutyDays.toDouble(), isBn, 0)} দিন" else "Total Duty: ${LaborLawCalculator.formatNumber(totalDutyDays.toDouble(), isBn, 0)} days", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(if (isBn) "নাইট শিফট: ${LaborLawCalculator.formatNumber(summary.nightShiftDays.toDouble(), isBn, 0)} দিন" else "Night Shift: ${LaborLawCalculator.formatNumber(summary.nightShiftDays.toDouble(), isBn, 0)} days", fontSize = 12.sp, color = NightBlue, fontWeight = FontWeight.SemiBold)
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("ছুটি/সাপ্তাহিক ছুটি: ${LaborLawCalculator.formatNumber((summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays).toDouble(), isBn, 0)} দিন", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("অনুপস্থিত: ${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন", fontSize = 12.sp, color = if (summary.absentDays > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                                    Text(if (isBn) "ছুটি/সাপ্তাহিক ছুটি: ${LaborLawCalculator.formatNumber((summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays).toDouble(), isBn, 0)} দিন" else "Leave/Weekly Off: ${LaborLawCalculator.formatNumber((summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays).toDouble(), isBn, 0)} days", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(if (isBn) "অনুপস্থিত: ${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন" else "Absent: ${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} days", fontSize = 12.sp, color = if (summary.absentDays > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                                 }
 
                                 HorizontalDivider()
 
                                 // Earnings Breakdown Table
                                 Text(
-                                    text = "আয়ের বিবরণ (Earnings):",
+                                    text = if (isBn) "আয়ের বিবরণ (Earnings):" else "Earnings Details:",
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleSmall
                                 )
 
-                                SlipRow("মূল বেতন (Basic Salary)", LaborLawCalculator.formatCurrency(summary.basicSalary, isBn))
-                                SlipRow("বাড়িভাড়া ভাতা (House Rent)", LaborLawCalculator.formatCurrency(profile.houseRent, isBn))
-                                SlipRow("চিকিৎসা ভাতা (Medical)", LaborLawCalculator.formatCurrency(profile.medicalAllowance, isBn))
-                                SlipRow("যাতায়াত ভাতা (Conveyance)", LaborLawCalculator.formatCurrency(profile.conveyanceAllowance, isBn))
-                                SlipRow("খাদ্য ভাতা (Food Allowance)", LaborLawCalculator.formatCurrency(profile.foodAllowance, isBn))
+                                SlipRow(if (isBn) "মূল বেতন (Basic Salary)" else "Basic Salary", LaborLawCalculator.formatCurrency(summary.basicSalary, isBn))
+                                SlipRow(if (isBn) "বাড়িভাড়া ভাতা (House Rent)" else "House Rent", LaborLawCalculator.formatCurrency(profile.houseRent, isBn))
+                                SlipRow(if (isBn) "চিকিৎসা ভাতা (Medical)" else "Medical Allowance", LaborLawCalculator.formatCurrency(profile.medicalAllowance, isBn))
+                                SlipRow(if (isBn) "যাতায়াত ভাতা (Conveyance)" else "Conveyance Allowance", LaborLawCalculator.formatCurrency(profile.conveyanceAllowance, isBn))
+                                SlipRow(if (isBn) "খাদ্য ভাতা (Food Allowance)" else "Food Allowance", LaborLawCalculator.formatCurrency(profile.foodAllowance, isBn))
                                 val attendanceLabel = if (summary.attendanceBonus > 0) {
                                     if (summary.absentDays > 0) {
-                                        "হাজিরা বোনাস (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন অনুপস্থিতি অনুমোদিত)"
+                                        if (isBn) {
+                                            "হাজিরা বোনাস (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন অনুপস্থিতি অনুমোদিত)"
+                                        } else {
+                                            "Attendance Bonus (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} absent days allowed)"
+                                        }
                                     } else {
-                                        "হাজিরা বোনাস (উপস্থিতি সন্তোষজনক)"
+                                        if (isBn) "হাজিরা বোনাস (উপস্থিতি সন্তোষজনক)" else "Attendance Bonus (Good Attendance)"
                                     }
                                 } else if (summary.absentDays > 0) {
-                                    "হাজিরা বোনাস (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন অনুপস্থিতির কারণে কর্তন)"
+                                    if (isBn) {
+                                        "হাজিরা বোনাস (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন অনুপস্থিতির কারণে কর্তন)"
+                                    } else {
+                                        "Attendance Bonus (Lost due to ${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} absent days)"
+                                    }
                                 } else {
-                                    "হাজিরা বোনাস"
+                                    if (isBn) "হাজিরা বোনাস" else "Attendance Bonus"
                                 }
                                 SlipRow(attendanceLabel, LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn))
 
                                 HorizontalDivider()
 
                                 Text(
-                                    text = "অতিরিক্ত আয় (Overtime & Others):",
+                                    text = if (isBn) "অতিরিক্ত আয় (Overtime & Others):" else "Overtime & Other Earnings:",
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleSmall
                                 )
 
                                 SlipRow(
-                                    "ওভারটাইম আয় (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ঘণ্টা)",
+                                    if (isBn) {
+                                        "ওভারটাইম আয় (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ঘণ্টা)"
+                                    } else {
+                                        "Overtime Earnings (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} hrs)"
+                                    },
                                     LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn),
                                     isBold = true
                                 )
                                 if (summary.nightBillTotal > 0) {
-                                    SlipRow("নাইট বিল (${summary.nightBillCount}টি)", LaborLawCalculator.formatCurrency(summary.nightBillTotal, isBn))
+                                    SlipRow(
+                                        if (isBn) "নাইট বিল (${summary.nightBillCount}টি)" else "Night Bill (${summary.nightBillCount})",
+                                        LaborLawCalculator.formatCurrency(summary.nightBillTotal, isBn)
+                                    )
                                 }
                                 if (summary.tiffinBillTotal > 0) {
-                                    SlipRow("টিফিন বিল (${summary.tiffinBillCount}টি)", LaborLawCalculator.formatCurrency(summary.tiffinBillTotal, isBn))
+                                    SlipRow(
+                                        if (isBn) "টিফিন বিল (${summary.tiffinBillCount}টি)" else "Tiffin Bill (${summary.tiffinBillCount})",
+                                        LaborLawCalculator.formatCurrency(summary.tiffinBillTotal, isBn)
+                                    )
                                 }
                                 if (summary.absentDeduction > 0) {
                                     SlipRow(
-                                        "অনুপস্থিতি কর্তন (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন)",
+                                        if (isBn) {
+                                            "অনুপস্থিতি কর্তন (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন)"
+                                        } else {
+                                            "Absent Deduction (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} days)"
+                                        },
                                         "- " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn),
                                         isBold = true,
                                         isDeduction = true
@@ -379,7 +401,7 @@ fun PieceRateScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "মোট প্রদেয় বেতন:",
+                                        text = if (isBn) "মোট প্রদেয় বেতন:" else "Total Payable Salary:",
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.titleSmall,
                                         modifier = Modifier.weight(1f, fill = false)
@@ -430,30 +452,50 @@ fun PieceRateScreen(
                     item {
                         OutlinedButton(
                             onClick = {
-                                val slipText = """
-                                    📄 *${profile.companyName}*
-                                    মাসিক বেতন ও ওভারটাইম স্লিপ ($selectedMonth)
-                                    -------------------------------
-                                    👤 শ্রমিকের নাম: ${profile.userName}
-                                    🆔 আইডি: ${profile.workerId} | পদবি: ${profile.designation} (${profile.grade})
-                                    -------------------------------
-                                    💵 মূল বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
-                                    🏠 বাড়িভাড়া: ${LaborLawCalculator.formatCurrency(profile.houseRent, isBn)}
-                                    🩺 চিকিৎসা ও খাদ্য ভাতা: ${LaborLawCalculator.formatCurrency(profile.medicalAllowance + profile.foodAllowance, isBn)}
-                                    ⏱️ ওভারটাইম (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ঘ): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}
-                                    🌙 নাইট/টিফিন বিল: ${LaborLawCalculator.formatCurrency(summary.nightBillTotal + summary.tiffinBillTotal, isBn)}
-                                    🎯 হাজিরা বোনাস: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                    ❌ অনুপস্থিতি কর্তন (${summary.absentDays} দিন): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}
-                                    -------------------------------
-                                    ✅ *মোট প্রদেয় বেতন:* ${LaborLawCalculator.formatCurrency(summary.totalEstimatedEarnings, isBn)}
-                                    _ওভারটাইম ট্র্যাকার বিডি অ্যাপ দ্বারা প্রস্তুতকৃত_
-                                """.trimIndent()
+                                val slipText = if (isBn) {
+                                    """
+                                        📄 *${profile.companyName}*
+                                        মাসিক বেতন ও ওভারটাইম স্লিপ ($selectedMonth)
+                                        -------------------------------
+                                        👤 শ্রমিকের নাম: ${profile.userName}
+                                        🆔 আইডি: ${profile.workerId} | পদবি: ${profile.designation} (${profile.grade})
+                                        -------------------------------
+                                        💵 মূল বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
+                                        🏠 বাড়িভাড়া: ${LaborLawCalculator.formatCurrency(profile.houseRent, isBn)}
+                                        🩺 চিকিৎসা ও খাদ্য ভাতা: ${LaborLawCalculator.formatCurrency(profile.medicalAllowance + profile.foodAllowance, isBn)}
+                                        ⏱️ ওভারটাইম (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ঘ): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}
+                                        🌙 নাইট/টিফিন বিল: ${LaborLawCalculator.formatCurrency(summary.nightBillTotal + summary.tiffinBillTotal, isBn)}
+                                        🎯 হাজিরা বোনাস: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                        ❌ অনুপস্থিতি কর্তন (${summary.absentDays} দিন): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}
+                                        -------------------------------
+                                        ✅ *মোট প্রদেয় বেতন:* ${LaborLawCalculator.formatCurrency(summary.totalEstimatedEarnings, isBn)}
+                                        _ওভারটাইম ট্র্যাকার বিডি অ্যাপ দ্বারা প্রস্তুতকৃত_
+                                    """.trimIndent()
+                                } else {
+                                    """
+                                        📄 *${profile.companyName}*
+                                        Monthly Salary & Overtime Slip ($selectedMonth)
+                                        -------------------------------
+                                        👤 Worker: ${profile.userName}
+                                        🆔 ID: ${profile.workerId} | Designation: ${profile.designation} (${profile.grade})
+                                        -------------------------------
+                                        💵 Basic Salary: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
+                                        🏠 House Rent: ${LaborLawCalculator.formatCurrency(profile.houseRent, isBn)}
+                                        🩺 Medical & Food: ${LaborLawCalculator.formatCurrency(profile.medicalAllowance + profile.foodAllowance, isBn)}
+                                        ⏱️ Overtime (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} hrs): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}
+                                        🌙 Night/Tiffin Bill: ${LaborLawCalculator.formatCurrency(summary.nightBillTotal + summary.tiffinBillTotal, isBn)}
+                                        🎯 Attendance Bonus: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                        ❌ Absent Deduction (${summary.absentDays} days): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}
+                                        -------------------------------
+                                        ✅ *Total Payable Salary:* ${LaborLawCalculator.formatCurrency(summary.totalEstimatedEarnings, isBn)}
+                                        _Generated by Overtime Tracker BD App_
+                                    """.trimIndent()
+                                }
 
                                 val sendIntent = Intent().apply {
                                     action = Intent.ACTION_SEND
                                     putExtra(Intent.EXTRA_TEXT, slipText)
                                     type = "text/plain"
                                 }
-                                val shareIntent = Intent.createChooser(sendIntent, "বেতন স্লিপ শেয়ার করুন")
+                                val shareIntent = Intent.createChooser(sendIntent, if (isBn) "বেতন স্লিপ শেয়ার করুন" else "Share Pay Slip")
                                 context.startActivity(shareIntent)
                             },
                             modifier = Modifier
@@ -474,10 +516,14 @@ fun PieceRateScreen(
     if (itemToDelete != null) {
         AlertDialog(
             onDismissRequest = { itemToDelete = null },
-            title = { Text("পিস রেট রেকর্ড মুছবেন?") },
+            title = { Text(if (isBn) "পিস রেট রেকর্ড মুছবেন?" else "Delete Piece Rate Record?") },
             text = {
                 Text(
-                    text = "আপনি কি নিশ্চিত যে '${itemToDelete?.itemName}' (${itemToDelete?.date}) এর রেকর্ডটি রিসাইকেল বিন (Trash)-এ পাঠাতে চান? সেখানে এটি ১ দিন জমা থাকবে।"
+                    text = if (isBn) {
+                        "আপনি কি নিশ্চিত যে '${itemToDelete?.itemName}' (${itemToDelete?.date}) এর রেকর্ডটি রিসাইকেল বিন (Trash)-এ পাঠাতে চান? সেখানে এটি ১ দিন জমা থাকবে।"
+                    } else {
+                        "Are you sure you want to move '${itemToDelete?.itemName}' (${itemToDelete?.date}) to Recycle Bin (Trash)? It will be kept there for 1 day."
+                    }
                 )
             },
             confirmButton = {
@@ -488,12 +534,12 @@ fun PieceRateScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("মুছে ফেলুন")
+                    Text(if (isBn) "মুছে ফেলুন" else "Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { itemToDelete = null }) {
-                    Text("বাতিল")
+                    Text(if (isBn) "বাতিল" else "Cancel")
                 }
             }
         )
