@@ -56,6 +56,25 @@
         "createdAt": { "type": "number" },
         "updatedAt": { "type": "number" }
       }
+    },
+    "MonthlySalarySettings": {
+      "path": "users/{userId}/monthly_salary_settings/{yearMonth}",
+      "fields": {
+        "yearMonth": { "type": "string" },
+        "basicSalary": { "type": "number" },
+        "houseRent": { "type": "number" },
+        "medicalAllowance": { "type": "number" },
+        "conveyanceAllowance": { "type": "number" },
+        "foodAllowance": { "type": "number" },
+        "grossSalary": { "type": "number" },
+        "hourlyOtRate": { "type": "number" },
+        "attendanceBonus": { "type": "number" },
+        "maxAbsentForBonus": { "type": "number" },
+        "nightBillRate": { "type": "number" },
+        "tiffinBillRate": { "type": "number" },
+        "isCustomSalary": { "type": "boolean" },
+        "updatedAt": { "type": "number" }
+      }
     }
   }
 }

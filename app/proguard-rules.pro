@@ -23,3 +23,7 @@
 # Firebase App Check & Google Play Integrity rules
 -keep class com.google.firebase.appcheck.** { *; }
 -keep class com.google.android.play.core.integrity.** { *; }
+
+# Room Database & Data Models
+-keep class com.example.data.model.** { *; }
+-keep class com.example.data.local.** { *; }

@@ -11,6 +11,10 @@ service cloud.firestore {
       match /piece_rate_records/{recordId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      match /monthly_salary_settings/{yearMonth} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }

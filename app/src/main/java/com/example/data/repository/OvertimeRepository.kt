@@ -101,6 +101,9 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
 
     suspend fun saveMonthlySalarySettings(settings: com.example.data.model.MonthlySalarySettings) {
         monthlySalaryDao.insertOrUpdate(settings)
+        syncScope.launch {
+            autoSyncMonthlySalaryToCloud(settings)
+        }
     }
 
     // Overtime
@@ -224,8 +227,6 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
     private fun getDocId(profile: UserProfile? = null): String? {
         val uid = auth.currentUser?.uid
         if (!uid.isNullOrBlank()) return uid
-        val workerId = profile?.workerId?.trim() ?: ""
-        if (workerId.isNotBlank()) return workerId.replace("/", "_")
         return null
     }
 
@@ -318,6 +319,19 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             lastCloudSyncTime = now,
             cloudSyncStatus = "স্বয়ংক্রিয় ব্যাকআপ সক্রিয় (Synced)"
         ))
+    }
+
+    private suspend fun autoSyncMonthlySalaryToCloud(settings: com.example.data.model.MonthlySalarySettings) {
+        val docId = getDocId() ?: return
+        try {
+            val map = monthlySalaryToMap(settings)
+            firestore.collection("users").document(docId)
+                .collection("monthly_salary_settings").document(settings.yearMonth)
+                .set(map, SetOptions.merge()).awaitResult()
+            Log.d("OvertimeRepository", "Auto sync monthly salary settings success: ${settings.yearMonth}")
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Auto sync monthly salary settings failed: ${e.message}")
+        }
     }
 
     private fun getDoubleFromField(value: Any?): Double {
@@ -486,7 +500,22 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 }
             }
 
-            // 6. Ensure profile in Room DB has latest sync timestamp and status using currentProfile
+            // 6. Upload local Monthly Salary Settings to cloud
+            val localMonthlySettings = monthlySalaryDao.getAllSettings()
+            for (ms in localMonthlySettings) {
+                userDocRef.collection("monthly_salary_settings").document(ms.yearMonth)
+                    .set(monthlySalaryToMap(ms), SetOptions.merge()).awaitResult()
+            }
+
+            // 7. Download / Restore Monthly Salary Settings from cloud
+            val msQuerySnap = userDocRef.collection("monthly_salary_settings").get().awaitResult()
+            for (doc in msQuerySnap.documents) {
+                val data = doc.data ?: continue
+                val remoteMs = mapToMonthlySalary(data) ?: continue
+                monthlySalaryDao.insertOrUpdate(remoteMs)
+            }
+
+            // 8. Ensure profile in Room DB has latest sync timestamp and status using currentProfile
             val finalProfile = currentProfile.copy(
                 lastCloudSyncTime = now,
                 cloudSyncStatus = "স্বয়ংক্রিয় ব্যাকআপ সক্রিয় (Synced)"
@@ -606,6 +635,45 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             totalAmount = (map["totalAmount"] as? Number)?.toDouble() ?: 0.0,
             note = map["note"] as? String ?: "",
             createdAt = (map["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
+        )
+    }
+
+    private fun monthlySalaryToMap(settings: com.example.data.model.MonthlySalarySettings): Map<String, Any> {
+        return hashMapOf(
+            "yearMonth" to settings.yearMonth,
+            "basicSalary" to settings.basicSalary,
+            "houseRent" to settings.houseRent,
+            "medicalAllowance" to settings.medicalAllowance,
+            "conveyanceAllowance" to settings.conveyanceAllowance,
+            "foodAllowance" to settings.foodAllowance,
+            "grossSalary" to settings.grossSalary,
+            "hourlyOtRate" to settings.hourlyOtRate,
+            "attendanceBonus" to settings.attendanceBonus,
+            "maxAbsentForBonus" to settings.maxAbsentForBonus,
+            "nightBillRate" to settings.nightBillRate,
+            "tiffinBillRate" to settings.tiffinBillRate,
+            "isCustomSalary" to settings.isCustomSalary,
+            "updatedAt" to settings.updatedAt
+        )
+    }
+
+    private fun mapToMonthlySalary(map: Map<String, Any?>): com.example.data.model.MonthlySalarySettings? {
+        val yearMonth = map["yearMonth"] as? String ?: return null
+        return com.example.data.model.MonthlySalarySettings(
+            yearMonth = yearMonth,
+            basicSalary = getDoubleFromField(map["basicSalary"]),
+            houseRent = getDoubleFromField(map["houseRent"]),
+            medicalAllowance = getDoubleFromField(map["medicalAllowance"]),
+            conveyanceAllowance = getDoubleFromField(map["conveyanceAllowance"]),
+            foodAllowance = getDoubleFromField(map["foodAllowance"]),
+            grossSalary = getDoubleFromField(map["grossSalary"]),
+            hourlyOtRate = getDoubleFromField(map["hourlyOtRate"]),
+            attendanceBonus = getDoubleFromField(map["attendanceBonus"]),
+            maxAbsentForBonus = ((map["maxAbsentForBonus"] as? Number)?.toInt() ?: 1).coerceAtLeast(0),
+            nightBillRate = getDoubleFromField(map["nightBillRate"]),
+            tiffinBillRate = getDoubleFromField(map["tiffinBillRate"]),
+            isCustomSalary = getBooleanFromField(map["isCustomSalary"]),
+            updatedAt = (map["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
         )
     }
 
