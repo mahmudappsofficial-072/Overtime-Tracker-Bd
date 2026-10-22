@@ -1058,12 +1058,15 @@ fun InitialPrivacyConsentDialog(
     lang: String,
     onAgree: () -> Unit,
     onDecline: () -> Unit,
-    onViewFullPolicy: () -> Unit
+    onViewFullPolicy: () -> Unit,
+    titleText: String? = null,
+    confirmButtonText: String? = null,
+    dismissButtonText: String? = null
 ) {
     val isBn = lang == "bn"
 
     AlertDialog(
-        onDismissRequest = { /* Force explicit user action */ },
+        onDismissRequest = onDecline,
         shape = RoundedCornerShape(20.dp),
         title = {
             Row(
@@ -1087,7 +1090,7 @@ fun InitialPrivacyConsentDialog(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = if (isBn) "গোপনীয়তা ও ডেটা সুরক্ষার সম্মতি" else "Privacy & Data Consent",
+                        text = titleText ?: if (isBn) "গোপনীয়তা ও ডেটা সুরক্ষার সম্মতি" else "Privacy & Data Consent",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -1173,7 +1176,7 @@ fun InitialPrivacyConsentDialog(
                 modifier = Modifier.testTag("consent_agree_button")
             ) {
                 Text(
-                    text = if (isBn) "সম্মত আছি ও প্রবেশ করুন" else "Agree & Continue",
+                    text = confirmButtonText ?: if (isBn) "সম্মত আছি ও প্রবেশ করুন" else "Agree & Continue",
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -1185,7 +1188,7 @@ fun InitialPrivacyConsentDialog(
                 modifier = Modifier.testTag("consent_decline_button")
             ) {
                 Text(
-                    text = if (isBn) "বাতিল (বেরিয়ে যান)" else "Decline & Exit"
+                    text = dismissButtonText ?: if (isBn) "বাতিল (বেরিয়ে যান)" else "Decline & Exit"
                 )
             }
         }

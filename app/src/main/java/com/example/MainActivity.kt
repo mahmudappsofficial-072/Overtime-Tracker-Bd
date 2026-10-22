@@ -134,6 +134,7 @@ fun OvertimeApp(
     var recordToEdit by remember { mutableStateOf<OvertimeRecord?>(null) }
     var showPieceDialog by remember { mutableStateOf(false) }
     var showTargetDialog by remember { mutableStateOf(false) }
+    var showSignInConsentDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -293,8 +294,12 @@ fun OvertimeApp(
                     isAuthLoading = isAuthLoading,
                     onSignInWithGoogle = {
                         activity?.let { act ->
-                            viewModel.signInWithGoogle(act) { err ->
-                                android.widget.Toast.makeText(act, err, android.widget.Toast.LENGTH_LONG).show()
+                            if (!profile.hasAcceptedPrivacyPolicy) {
+                                showSignInConsentDialog = true
+                            } else {
+                                viewModel.signInWithGoogle(act) { err ->
+                                    android.widget.Toast.makeText(act, err, android.widget.Toast.LENGTH_LONG).show()
+                                }
                             }
                         }
                     },
@@ -377,7 +382,7 @@ fun OvertimeApp(
     }
 
     // Missing Overtime Entry Reminder Dialog
-    if (showMissingOtDialog && profile.hasAcceptedPrivacyPolicy && !showQuickOtDialog) {
+    if (showMissingOtDialog && !showQuickOtDialog) {
         MissingOtReminderDialog(
             missingDates = missingOtDates,
             lang = lang,
@@ -394,15 +399,24 @@ fun OvertimeApp(
         )
     }
 
-    // Initial Onboarding Privacy Consent Dialog
-    if (!profile.hasAcceptedPrivacyPolicy) {
+    // Google Sign-In Privacy Consent Dialog (shown only when user clicks Google Sign-In and has not consented yet)
+    if (showSignInConsentDialog) {
         InitialPrivacyConsentDialog(
             lang = lang,
+            titleText = if (lang == "bn") "ক্লাউড ব্যাকআপ ও নীতিমালা সম্মতি" else "Cloud Backup & Privacy Consent",
+            confirmButtonText = if (lang == "bn") "সম্মত আছি ও সাইন ইন" else "Agree & Sign In",
+            dismissButtonText = if (lang == "bn") "বাতিল / অফলাইনে ব্যবহার" else "Cancel / Use Offline",
             onAgree = {
+                showSignInConsentDialog = false
                 viewModel.acceptPrivacyPolicy()
+                activity?.let { act ->
+                    viewModel.signInWithGoogle(act) { err ->
+                        android.widget.Toast.makeText(act, err, android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
             },
             onDecline = {
-                activity?.finish()
+                showSignInConsentDialog = false
             },
             onViewFullPolicy = {
                 val privacyUrl = "https://mahmudappsofficial-072.github.io/overtime-tracker-privacy-policy/"
