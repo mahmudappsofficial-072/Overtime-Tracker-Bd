@@ -310,7 +310,17 @@ fun OvertimeApp(
                     trashItems = trashItems,
                     onRestoreTrash = { viewModel.restoreTrashItem(it) },
                     onDeleteTrashPermanently = { viewModel.deleteTrashItemPermanently(it) },
-                    onClearAllTrash = { viewModel.clearAllTrash() }
+                    onClearAllTrash = { viewModel.clearAllTrash() },
+                    onDeleteAllData = {
+                        viewModel.deleteAllData { success ->
+                            val msg = if (success) {
+                                if (lang == "bn") "সকল ডেটা সফলভাবে মুছে ফেলা হয়েছে" else "All data deleted successfully"
+                            } else {
+                                if (lang == "bn") "ডেটা মুছতে সমস্যা হয়েছে" else "Failed to delete data"
+                            }
+                            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
                 )
             }
         }

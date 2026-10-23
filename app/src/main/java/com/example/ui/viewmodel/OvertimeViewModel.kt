@@ -477,6 +477,24 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             repository.clearAllLocalData()
         }
     }
+
+    fun deleteAllData(onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val isCloud = currentUser.value != null
+                repository.deleteAllUserData(isCloud)
+                if (isCloud) {
+                    com.example.data.auth.AuthManager.signOut(getApplication())
+                }
+                val currentCalendarYm = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date())
+                _selectedYearMonth.value = currentCalendarYm
+                onComplete(true)
+            } catch (e: Exception) {
+                android.util.Log.e("OvertimeViewModel", "Failed to delete all data: ${e.message}", e)
+                onComplete(false)
+            }
+        }
+    }
 }
 
 data class MonthlySummaryState(

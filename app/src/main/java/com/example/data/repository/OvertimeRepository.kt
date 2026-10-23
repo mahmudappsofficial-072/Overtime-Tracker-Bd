@@ -211,8 +211,8 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 monthlyOtTargetHours = 0.0,
                 language = current?.language ?: "bn",
                 supportWhatsapp = "",
-                hasAcceptedPrivacyPolicy = current?.hasAcceptedPrivacyPolicy ?: false,
-                privacyPolicyAcceptedAt = current?.privacyPolicyAcceptedAt ?: 0L,
+                hasAcceptedPrivacyPolicy = false,
+                privacyPolicyAcceptedAt = 0L,
                 lastCloudSyncTime = 0L,
                 cloudSyncStatus = if ((current?.language ?: "bn") == "bn") "লগইন নেই (লোকাল)" else "Not logged in (Local)"
             )
@@ -220,6 +220,59 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         } catch (e: Exception) {
             Log.e("OvertimeRepository", "Error clearing local data", e)
         }
+    }
+
+    suspend fun deleteAllUserData(isCloudSignedIn: Boolean) = withContext(Dispatchers.IO) {
+        if (isCloudSignedIn) {
+            val uid = auth.currentUser?.uid
+            if (!uid.isNullOrBlank()) {
+                try {
+                    val userDocRef = firestore.collection("users").document(uid)
+
+                    // 1. Delete all overtime_records in Firestore
+                    val otSnap = userDocRef.collection("overtime_records").get().awaitResult()
+                    for (doc in otSnap.documents) {
+                        try {
+                            doc.reference.delete().awaitResult()
+                        } catch (e: Exception) {
+                            Log.w("OvertimeRepository", "Failed deleting cloud OT doc: ${doc.id}")
+                        }
+                    }
+
+                    // 2. Delete all piece_rate_records in Firestore
+                    val prSnap = userDocRef.collection("piece_rate_records").get().awaitResult()
+                    for (doc in prSnap.documents) {
+                        try {
+                            doc.reference.delete().awaitResult()
+                        } catch (e: Exception) {
+                            Log.w("OvertimeRepository", "Failed deleting cloud PR doc: ${doc.id}")
+                        }
+                    }
+
+                    // 3. Delete all monthly_salary_settings in Firestore
+                    val msSnap = userDocRef.collection("monthly_salary_settings").get().awaitResult()
+                    for (doc in msSnap.documents) {
+                        try {
+                            doc.reference.delete().awaitResult()
+                        } catch (e: Exception) {
+                            Log.w("OvertimeRepository", "Failed deleting cloud MS doc: ${doc.id}")
+                        }
+                    }
+
+                    // 4. Delete root user document in Firestore completely so zero data remains
+                    try {
+                        userDocRef.delete().awaitResult()
+                    } catch (e: Exception) {
+                        Log.w("OvertimeRepository", "Failed deleting root user doc: ${e.message}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("OvertimeRepository", "Error clearing cloud data: ${e.message}", e)
+                }
+            }
+        }
+
+        // Always clear all local data in Room database
+        clearAllLocalData()
     }
 
     // --- Automatic Firebase Sync Engine ---

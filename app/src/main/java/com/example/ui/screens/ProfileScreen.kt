@@ -49,11 +49,13 @@ fun ProfileScreen(
     trashItems: List<com.example.data.model.TrashItem> = emptyList(),
     onRestoreTrash: (com.example.data.model.TrashItem) -> Unit = {},
     onDeleteTrashPermanently: (com.example.data.model.TrashItem) -> Unit = {},
-    onClearAllTrash: () -> Unit = {}
+    onClearAllTrash: () -> Unit = {},
+    onDeleteAllData: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val isBn = lang == "bn"
     var showTrashDialog by remember { mutableStateOf(false) }
+    var showDeleteAllConfirmDialog by remember { mutableStateOf(false) }
 
     // Profile state
     var userName by remember(profile) { mutableStateOf(profile.userName) }
@@ -108,6 +110,29 @@ fun ProfileScreen(
     }
 
     var whatsappNumber by remember(profile) { mutableStateOf(profile.supportWhatsapp) }
+
+    LaunchedEffect(profile) {
+        if (profile.basicSalary == 0.0 && profile.userName.isBlank() && profile.companyName.isBlank() && profile.workerId.isBlank()) {
+            userName = ""
+            companyName = ""
+            designation = ""
+            workerId = ""
+            grade = ""
+            grossSalaryText = "0"
+            basicSalaryText = "0"
+            houseRentText = "0"
+            medicalText = "0"
+            conveyanceText = "0"
+            foodText = "0"
+            attendanceBonusText = "0"
+            maxAbsentForBonusText = "0"
+            nightBillRateText = "0"
+            tiffinBillRateText = "0"
+            customOtRateText = "0"
+            whatsappNumber = ""
+            isCustomSalary = false
+        }
+    }
 
     // Dialog flags
     var showSettingsDialog by remember { mutableStateOf(false) }
@@ -1087,6 +1112,41 @@ fun ProfileScreen(
                                     fontWeight = FontWeight.Medium
                                 )
                             }
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+
+                            // Delete All Button
+                            OutlinedButton(
+                                onClick = { showDeleteAllConfirmDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("delete_all_data_button"),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteForever,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isBn) "Delete All (সকল ডেটা মুছুন)" else "Delete All Data",
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -1094,6 +1154,88 @@ fun ProfileScreen(
             confirmButton = {
                 Button(onClick = { showSettingsDialog = false }) {
                     Text(if (isBn) "সম্পন্ন" else "Done")
+                }
+            }
+        )
+    }
+
+    if (showDeleteAllConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllConfirmDialog = false },
+            shape = RoundedCornerShape(16.dp),
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = if (isBn) "সব ডেটা মুছে ফেলতে চান?" else "Delete All Data?",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Text(
+                    text = if (currentUser != null) {
+                        if (isBn)
+                            "সতর্কতা: এটি নিশ্চিত করলে আপনার ফোনের লোকাল ডেটাবেজ এবং গুগল ক্লাউড (Firestore)-এর সকল ওভারটাইম, পিস রেট ও বেতনের হিসাব স্থায়ীভাবে মুছে শূন্য (0) হয়ে যাবে। এটি আর ফিরিয়ে আনা সম্ভব হবে না। আপনি কি নিশ্চিত?"
+                        else
+                            "Warning: Confirming this will permanently delete all your overtime, piece rate, and salary settings from both local device storage and Google Cloud (Firestore). This action cannot be undone. Are you sure?"
+                    } else {
+                        if (isBn)
+                            "সতর্কতা: এটি নিশ্চিত করলে আপনার ফোনের লোকাল ডেটাবেজে সংরক্ষিত সকল ওভারটাইম, পিস রেট ও বেতনের হিসাব স্থায়ীভাবে মুছে শূন্য (0) হয়ে যাবে। এটি আর ফিরিয়ে আনা সম্ভব হবে না। আপনি কি নিশ্চিত?"
+                        else
+                            "Warning: Confirming this will permanently delete all your local overtime, piece rate, and salary settings. This action cannot be undone. Are you sure?"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteAllConfirmDialog = false
+                        showSettingsDialog = false
+                        userName = ""
+                        companyName = ""
+                        designation = ""
+                        workerId = ""
+                        grade = ""
+                        grossSalaryText = "0"
+                        basicSalaryText = "0"
+                        houseRentText = "0"
+                        medicalText = "0"
+                        conveyanceText = "0"
+                        foodText = "0"
+                        attendanceBonusText = "0"
+                        maxAbsentForBonusText = "0"
+                        nightBillRateText = "0"
+                        tiffinBillRateText = "0"
+                        customOtRateText = "0"
+                        whatsappNumber = ""
+                        isCustomSalary = false
+                        onDeleteAllData()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag("confirm_delete_all_button")
+                ) {
+                    Text(
+                        text = if (isBn) "হ্যাঁ, নিশ্চিত করুন" else "Yes, Delete All",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onError
+                    )
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDeleteAllConfirmDialog = false },
+                    modifier = Modifier.testTag("cancel_delete_all_button")
+                ) {
+                    Text(if (isBn) "বাতিল" else "Cancel")
                 }
             }
         )
