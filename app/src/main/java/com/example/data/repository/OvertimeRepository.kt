@@ -10,6 +10,7 @@ import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -259,7 +260,38 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                         }
                     }
 
-                    // 4. Delete root user document in Firestore completely so zero data remains
+                    // 4. Wipe all profile fields in Firestore root user document completely
+                    val emptyProfileMap = hashMapOf<String, Any>(
+                        "userName" to "",
+                        "companyName" to "",
+                        "designation" to "",
+                        "workerId" to "",
+                        "grade" to "",
+                        "isCustomSalary" to false,
+                        "basicSalary" to 0.0,
+                        "houseRent" to 0.0,
+                        "medicalAllowance" to 0.0,
+                        "conveyanceAllowance" to 0.0,
+                        "foodAllowance" to 0.0,
+                        "attendanceBonus" to 0.0,
+                        "maxAbsentForBonus" to 0,
+                        "nightBillRate" to 0.0,
+                        "tiffinBillRate" to 0.0,
+                        "customOtRate" to 0.0,
+                        "monthlyOtTargetHours" to 0.0,
+                        "language" to "bn",
+                        "supportWhatsapp" to "",
+                        "hasAcceptedPrivacyPolicy" to false,
+                        "privacyPolicyAcceptedAt" to 0L,
+                        "lastSyncTime" to 0L
+                    )
+                    try {
+                        userDocRef.set(emptyProfileMap).awaitResult()
+                    } catch (e: Exception) {
+                        Log.w("OvertimeRepository", "Failed clearing root user doc fields: ${e.message}")
+                    }
+
+                    // 5. Delete root user document in Firestore completely so zero data remains
                     try {
                         userDocRef.delete().awaitResult()
                     } catch (e: Exception) {
@@ -413,8 +445,12 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         return try {
             val userDocRef = firestore.collection("users").document(docId)
 
-            // 1. Sync Profile
-            val cloudProfileSnap = userDocRef.get().awaitResult()
+            // 1. Sync Profile directly from server to avoid stale cached profiles
+            val cloudProfileSnap = try {
+                userDocRef.get(Source.SERVER).awaitResult()
+            } catch (_: Exception) {
+                userDocRef.get().awaitResult()
+            }
             if (cloudProfileSnap.exists()) {
                 val data = cloudProfileSnap.data
                 if (data != null) {
@@ -441,15 +477,14 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
 
                     // Check if cloud document contains meaningful user profile data
                     val cloudHasData = cloudBasic > 0.0 ||
-                            cloudName.isNotBlank() ||
+                            (cloudName.isNotBlank() && cloudName != "মোঃ শ্রমিক ভাই") ||
                             cloudCompany.isNotBlank() ||
                             cloudWorkerId.isNotBlank() ||
                             cloudDesignation.isNotBlank() ||
                             cloudNightBill > 0.0 ||
                             cloudTiffinBill > 0.0 ||
                             cloudAttendanceBonus > 0.0 ||
-                            cloudTargetHours > 0.0 ||
-                            cloudSyncTime > 0L
+                            cloudTargetHours > 0.0
 
                     // Check if local is fresh install or default unconfigured state
                     val localIsDefaultOrBlank = currentProfile.lastCloudSyncTime == 0L ||

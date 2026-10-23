@@ -998,62 +998,6 @@ fun TargetGoalDialog(
 }
 
 @Composable
-fun PrivacyPolicyDialog(
-    lang: String,
-    onDismiss: () -> Unit
-) {
-    val isBn = lang == "bn"
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(LanguageManager.get("privacy_policy", lang), fontWeight = FontWeight.Bold)
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = if (isBn) "ওভারটাইম ট্র্যাকার বিডি - গোপনীয়তা ও সুরক্ষা নীতিমালা" else "Overtime Tracker BD - Privacy & Security Policy",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = if (isBn) {
-                        "১. ডাটা নিরাপত্তা: আপনার সকল ওভারটাইম ও ব্যক্তিগত তথ্য প্রাথমিকভাবে আপনার নিজস্ব ডিভাইসে এনক্রিপ্টেড ও সুরক্ষিতভাবে সংরক্ষিত থাকে।\n\n" +
-                        "২. কোনো ট্র্যাকিং নেই: এই অ্যাপ্লিকেশন কোনো তৃতীয় পক্ষের বিজ্ঞাপন ট্র্যাকিং বা আপনার তথ্য অন্য কোনো কোম্পানির কাছে বিক্রি করে না।\n\n" +
-                        "৩. ক্লাউড ব্যাকআপ: আপনি যখন ক্লাউড সিঙ্ক ফিচার ব্যবহার করবেন, শুধুমাত্র তখনই আপনার তথ্য ফায়ারবেস ক্লাউডে সুরক্ষিত ডাটাবেসে সেভ হবে যেন ফোন বদলালেও তথ্য নিরাপদ থাকে।\n\n" +
-                        "৪. বাংলাদেশ শ্রম আইন সম্মতি: অ্যাপের সকল গাণিতিক সূত্র বাংলাদেশ শ্রম আইন ২০০৬ অনুযায়ী তৈরি।\n\n" +
-                        "৫. যোগাযোগ ও অভিযোগ: যে কোনো জিজ্ঞাসা বা ডেটা মুছে ফেলার অনুরোধে সরাসরি অ্যাপের হোয়াটসঅ্যাপ সাপোর্ট বা ইমেইলে যোগাযোগ করতে পারবেন।\n\n" +
-                        "৬. পুশ নোটিফিকেশন ও রিমাইন্ডার: আপনাকে গুরুত্বপূর্ণ নোটিশ, আপডেট ও দৈনিক ওটি রিমাইন্ডার পাঠাতে ফায়ারবেস ক্লাউড মেসেজিং (FCM) ও স্থানীয় অ্যালার্ম ব্যবহার করা হয়। এতে কোনো বিজ্ঞাপন বা স্প্যাম নেই এবং আপনি যেকোনো সময় ফোনের সেটিংস থেকে নোটিফিকেশন নিয়ন্ত্রণ করতে পারবেন।"
-                    } else {
-                        "1. Data Security: All your overtime logs and personal salary information are initially stored securely on your local device.\n\n" +
-                        "2. Zero Tracking: This application does not track you with third-party advertising or sell your information to any third parties.\n\n" +
-                        "3. Cloud Backup: Only when you enable Cloud Sync with your Google Account, your data is securely backed up to Firebase Cloud so you never lose your records.\n\n" +
-                        "4. Labor Law Compliance: All mathematical calculation formulas strictly adhere to the Bangladesh Labor Act 2006.\n\n" +
-                        "5. Contact & Deletion: For support or requesting full data deletion, you can reach out directly via WhatsApp support or email.\n\n" +
-                        "6. Push Notifications & Reminders: Firebase Cloud Messaging (FCM) and local alarms send important announcements and daily OT reminders. No ads or spam are sent, and you can disable notifications anytime in settings."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    lineHeight = 20.sp
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text(if (isBn) "বুঝেছি" else "Understood")
-            }
-        }
-    )
-}
-
-@Composable
 fun InitialPrivacyConsentDialog(
     lang: String,
     onAgree: () -> Unit,

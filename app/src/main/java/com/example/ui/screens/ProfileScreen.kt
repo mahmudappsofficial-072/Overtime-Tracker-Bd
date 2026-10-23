@@ -136,7 +136,6 @@ fun ProfileScreen(
 
     // Dialog flags
     var showSettingsDialog by remember { mutableStateOf(false) }
-    var showPrivacyDialog by remember { mutableStateOf(false) }
     var showSignOutConfirmDialog by remember { mutableStateOf(false) }
 
     // Auto-calculate allowances from Gross Salary if mode is Automatic
@@ -902,7 +901,12 @@ fun ProfileScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp)
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
@@ -931,7 +935,10 @@ fun ProfileScreen(
                                     )
                                 }
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.wrapContentWidth()
+                            ) {
                                 if (trashItems.isNotEmpty()) {
                                     Surface(
                                         shape = RoundedCornerShape(10.dp),
@@ -942,7 +949,9 @@ fun ProfileScreen(
                                             color = MaterialTheme.colorScheme.onError,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -982,8 +991,11 @@ fun ProfileScreen(
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(privacyUrl))
                                 context.startActivity(intent)
                             } catch (e: Exception) {
-                                // Fallback to built-in dialog if browser cannot be launched
-                                showPrivacyDialog = true
+                                android.widget.Toast.makeText(
+                                    context,
+                                    if (isBn) "ব্রাউজার খুলতে সমস্যা হয়েছে" else "Unable to open browser",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
                             }
                         },
                         modifier = Modifier.fillMaxWidth().testTag("privacy_policy_button")
@@ -1238,13 +1250,6 @@ fun ProfileScreen(
                     Text(if (isBn) "বাতিল" else "Cancel")
                 }
             }
-        )
-    }
-
-    if (showPrivacyDialog) {
-        PrivacyPolicyDialog(
-            lang = lang,
-            onDismiss = { showPrivacyDialog = false }
         )
     }
 
