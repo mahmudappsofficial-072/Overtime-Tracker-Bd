@@ -1034,12 +1034,12 @@ fun InitialPrivacyConsentDialog(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = titleText ?: if (isBn) "গোপনীয়তা ও ডেটা সুরক্ষার সম্মতি" else "Privacy & Data Consent",
+                        text = titleText ?: if (isBn) "গোপনীয়তা নীতিমালায় সম্মতি" else "Privacy Policy Consent",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = if (isBn) "Overtime Tracker BD (ওভারটাইম ট্র্যাকার বিডি)" else "Overtime Tracker BD",
+                        text = if (isBn) "ওভারটাইম ট্র্যাকার বিডি" else "Overtime Tracker BD",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1047,6 +1047,44 @@ fun InitialPrivacyConsentDialog(
             }
         },
         text = {
+            val annotatedText = androidx.compose.ui.text.buildAnnotatedString {
+                if (isBn) {
+                    append("সাইন ইন করার মাধ্যমে আপনি আমাদের ")
+                    val link = androidx.compose.ui.text.LinkAnnotation.Clickable(
+                        tag = "privacy_policy",
+                        styles = androidx.compose.ui.text.TextLinkStyles(
+                            style = androidx.compose.ui.text.SpanStyle(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                            )
+                        ),
+                        linkInteractionListener = { _ -> onViewFullPolicy() }
+                    )
+                    pushLink(link)
+                    append("গোপনীয়তা নীতিমালা")
+                    pop()
+                    append(" পড়েছেন এবং তাতে সম্মতি দিচ্ছেন।")
+                } else {
+                    append("By signing in, you confirm that you have read and agree to our ")
+                    val link = androidx.compose.ui.text.LinkAnnotation.Clickable(
+                        tag = "privacy_policy",
+                        styles = androidx.compose.ui.text.TextLinkStyles(
+                            style = androidx.compose.ui.text.SpanStyle(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                            )
+                        ),
+                        linkInteractionListener = { _ -> onViewFullPolicy() }
+                    )
+                    pushLink(link)
+                    append("Privacy Policy")
+                    pop()
+                    append(".")
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1057,57 +1095,11 @@ fun InitialPrivacyConsentDialog(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
+                    Box(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = if (isBn)
-                                "ওভারটাইম ট্র্যাকার বিডি অ্যাপটি আপনার কাজের সময়, বেতন ও হাজিরা সঠিকভাবে হিসাব করার জন্য প্রস্তুত করা হয়েছে।"
-                            else
-                                "Overtime Tracker BD is designed to accurately track your work hours, salary calculations, and attendance.",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = if (isBn)
-                                "• আপনার অনুমতি সাপেক্ষে বেতন, ভাতা ও ওটি তথ্য ডিভাইসে ও ক্লাউডে (Google Firebase) সংরক্ষিত হবে।\n• আমরা কোনো তথ্য তৃতীয় পক্ষের কাছে বিক্রি বা শেয়ার করি না।\n• আপনি যেকোনো সময় সাইন-আউট করে ডেটা মুছে ফেলতে পারেন।"
-                            else
-                                "• With your consent, salary figures and OT logs are saved on device & cloud (Google Firebase).\n• We never sell or share your personal data with third parties.\n• You can sign out or request permanent data deletion at any time.",
-                            style = MaterialTheme.typography.bodySmall,
-                            lineHeight = 18.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                ) {
-                    Text(
-                        text = if (isBn) "আমাদের পূর্ণাঙ্গ নীতিমালা:" else "Our complete policy:",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    TextButton(
-                        onClick = onViewFullPolicy,
-                        modifier = Modifier.testTag("consent_view_full_policy_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.OpenInNew,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (isBn) "বিস্তারিত পড়ুন" else "Read Details",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            text = annotatedText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            lineHeight = 22.sp
                         )
                     }
                 }

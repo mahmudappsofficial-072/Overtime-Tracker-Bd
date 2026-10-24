@@ -413,7 +413,7 @@ fun OvertimeApp(
     if (showSignInConsentDialog) {
         InitialPrivacyConsentDialog(
             lang = lang,
-            titleText = if (lang == "bn") "ক্লাউড ব্যাকআপ ও নীতিমালা সম্মতি" else "Cloud Backup & Privacy Consent",
+            titleText = if (lang == "bn") "গোপনীয়তা নীতিমালায় সম্মতি" else "Privacy Policy Consent",
             confirmButtonText = if (lang == "bn") "সম্মত আছি ও সাইন ইন" else "Agree & Sign In",
             dismissButtonText = if (lang == "bn") "বাতিল / অফলাইনে ব্যবহার" else "Cancel / Use Offline",
             onAgree = {

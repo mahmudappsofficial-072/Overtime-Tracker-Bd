@@ -227,79 +227,108 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         if (isCloudSignedIn) {
             val uid = auth.currentUser?.uid
             if (!uid.isNullOrBlank()) {
+                val userDocRef = firestore.collection("users").document(uid)
+
+                // STEP 1 (PROFILE FIRST): Delete and wipe the root user profile document immediately from server
                 try {
-                    val userDocRef = firestore.collection("users").document(uid)
-
-                    // 1. Delete all overtime_records in Firestore
-                    val otSnap = userDocRef.collection("overtime_records").get().awaitResult()
-                    for (doc in otSnap.documents) {
-                        try {
-                            doc.reference.delete().awaitResult()
-                        } catch (e: Exception) {
-                            Log.w("OvertimeRepository", "Failed deleting cloud OT doc: ${doc.id}")
-                        }
-                    }
-
-                    // 2. Delete all piece_rate_records in Firestore
-                    val prSnap = userDocRef.collection("piece_rate_records").get().awaitResult()
-                    for (doc in prSnap.documents) {
-                        try {
-                            doc.reference.delete().awaitResult()
-                        } catch (e: Exception) {
-                            Log.w("OvertimeRepository", "Failed deleting cloud PR doc: ${doc.id}")
-                        }
-                    }
-
-                    // 3. Delete all monthly_salary_settings in Firestore
-                    val msSnap = userDocRef.collection("monthly_salary_settings").get().awaitResult()
-                    for (doc in msSnap.documents) {
-                        try {
-                            doc.reference.delete().awaitResult()
-                        } catch (e: Exception) {
-                            Log.w("OvertimeRepository", "Failed deleting cloud MS doc: ${doc.id}")
-                        }
-                    }
-
-                    // 4. Wipe all profile fields in Firestore root user document completely
-                    val emptyProfileMap = hashMapOf<String, Any>(
-                        "userName" to "",
-                        "companyName" to "",
-                        "designation" to "",
-                        "workerId" to "",
-                        "grade" to "",
-                        "isCustomSalary" to false,
-                        "basicSalary" to 0.0,
-                        "houseRent" to 0.0,
-                        "medicalAllowance" to 0.0,
-                        "conveyanceAllowance" to 0.0,
-                        "foodAllowance" to 0.0,
-                        "attendanceBonus" to 0.0,
-                        "maxAbsentForBonus" to 0,
-                        "nightBillRate" to 0.0,
-                        "tiffinBillRate" to 0.0,
-                        "customOtRate" to 0.0,
-                        "monthlyOtTargetHours" to 0.0,
-                        "language" to "bn",
-                        "supportWhatsapp" to "",
-                        "hasAcceptedPrivacyPolicy" to false,
-                        "privacyPolicyAcceptedAt" to 0L,
-                        "lastSyncTime" to 0L
-                    )
+                    userDocRef.delete().awaitResult()
+                    Log.d("OvertimeRepository", "Root profile doc deleted directly from Firestore")
+                } catch (e: Exception) {
+                    Log.w("OvertimeRepository", "Failed direct delete of root user doc, attempting wipe: ${e.message}")
                     try {
+                        val emptyProfileMap = hashMapOf<String, Any>(
+                            "userName" to "",
+                            "companyName" to "",
+                            "designation" to "",
+                            "workerId" to "",
+                            "grade" to "",
+                            "isCustomSalary" to false,
+                            "basicSalary" to 0.0,
+                            "houseRent" to 0.0,
+                            "medicalAllowance" to 0.0,
+                            "conveyanceAllowance" to 0.0,
+                            "foodAllowance" to 0.0,
+                            "attendanceBonus" to 0.0,
+                            "maxAbsentForBonus" to 0,
+                            "nightBillRate" to 0.0,
+                            "tiffinBillRate" to 0.0,
+                            "customOtRate" to 0.0,
+                            "monthlyOtTargetHours" to 0.0,
+                            "language" to "bn",
+                            "supportWhatsapp" to "",
+                            "hasAcceptedPrivacyPolicy" to false,
+                            "privacyPolicyAcceptedAt" to 0L,
+                            "lastSyncTime" to 0L
+                        )
                         userDocRef.set(emptyProfileMap).awaitResult()
-                    } catch (e: Exception) {
-                        Log.w("OvertimeRepository", "Failed clearing root user doc fields: ${e.message}")
-                    }
-
-                    // 5. Delete root user document in Firestore completely so zero data remains
-                    try {
                         userDocRef.delete().awaitResult()
-                    } catch (e: Exception) {
-                        Log.w("OvertimeRepository", "Failed deleting root user doc: ${e.message}")
+                    } catch (e2: Exception) {
+                        Log.w("OvertimeRepository", "Failed fallback wipe of root user doc: ${e2.message}")
+                    }
+                }
+
+                // STEP 2: Delete subcollections using batched writes for maximum reliability
+                // 2a. overtime_records
+                try {
+                    val otSnap = userDocRef.collection("overtime_records").get().awaitResult()
+                    if (!otSnap.isEmpty) {
+                        val batch = firestore.batch()
+                        var count = 0
+                        for (doc in otSnap.documents) {
+                            batch.delete(doc.reference)
+                            count++
+                            if (count % 450 == 0) {
+                                batch.commit().awaitResult()
+                            }
+                        }
+                        batch.commit().awaitResult()
                     }
                 } catch (e: Exception) {
-                    Log.e("OvertimeRepository", "Error clearing cloud data: ${e.message}", e)
+                    Log.w("OvertimeRepository", "Failed deleting cloud overtime_records: ${e.message}")
                 }
+
+                // 2b. piece_rate_records
+                try {
+                    val prSnap = userDocRef.collection("piece_rate_records").get().awaitResult()
+                    if (!prSnap.isEmpty) {
+                        val batch = firestore.batch()
+                        var count = 0
+                        for (doc in prSnap.documents) {
+                            batch.delete(doc.reference)
+                            count++
+                            if (count % 450 == 0) {
+                                batch.commit().awaitResult()
+                            }
+                        }
+                        batch.commit().awaitResult()
+                    }
+                } catch (e: Exception) {
+                    Log.w("OvertimeRepository", "Failed deleting cloud piece_rate_records: ${e.message}")
+                }
+
+                // 2c. monthly_salary_settings
+                try {
+                    val msSnap = userDocRef.collection("monthly_salary_settings").get().awaitResult()
+                    if (!msSnap.isEmpty) {
+                        val batch = firestore.batch()
+                        var count = 0
+                        for (doc in msSnap.documents) {
+                            batch.delete(doc.reference)
+                            count++
+                            if (count % 450 == 0) {
+                                batch.commit().awaitResult()
+                            }
+                        }
+                        batch.commit().awaitResult()
+                    }
+                } catch (e: Exception) {
+                    Log.w("OvertimeRepository", "Failed deleting cloud monthly_salary_settings: ${e.message}")
+                }
+
+                // STEP 3 (FINAL CLEANUP): Re-verify root document is gone
+                try {
+                    userDocRef.delete().awaitResult()
+                } catch (_: Exception) {}
             }
         }
 
