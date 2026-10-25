@@ -223,48 +223,108 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         }
     }
 
+    suspend fun checkUserConsentInCloud(uid: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val snap = firestore.collection("users").document(uid).get().awaitResult()
+            if (snap.exists()) {
+                val data = snap.data
+                val hasConsent = data?.get("hasAcceptedPrivacyPolicy") as? Boolean ?: false
+                val consentAudit = data?.get("consentAudit") as? Map<*, *>
+                val auditConsent = consentAudit?.get("isConsentGiven") as? Boolean ?: false
+                hasConsent || auditConsent
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Error checking user consent in cloud: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun saveConsentToCloud(uid: String) = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        try {
+            val consentMap = hashMapOf<String, Any>(
+                "hasAcceptedPrivacyPolicy" to true,
+                "privacyPolicyAcceptedAt" to now,
+                "consentAudit" to hashMapOf<String, Any>(
+                    "isConsentGiven" to true,
+                    "consentTimestamp" to now,
+                    "policyVersion" to "1.0.10",
+                    "consentDeclaration" to "User agreed to Terms and Privacy Policy before storing salary and overtime data in Firestore."
+                )
+            )
+            firestore.collection("users").document(uid).set(consentMap, SetOptions.merge()).awaitResult()
+            markConsentGivenLocally(now)
+            Log.d("OvertimeRepository", "Privacy consent recorded successfully in Firestore for uid: $uid")
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Error saving consent to cloud: ${e.message}")
+            markConsentGivenLocally(now)
+        }
+    }
+
+    suspend fun markConsentGivenLocally(timestamp: Long = System.currentTimeMillis()) {
+        val current = userProfileDao.getUserProfileOnce() ?: UserProfile()
+        userProfileDao.insertOrUpdateProfile(
+            current.copy(
+                hasAcceptedPrivacyPolicy = true,
+                privacyPolicyAcceptedAt = timestamp
+            )
+        )
+    }
+
     suspend fun deleteAllUserData(isCloudSignedIn: Boolean) = withContext(Dispatchers.IO) {
         if (isCloudSignedIn) {
             val uid = auth.currentUser?.uid
             if (!uid.isNullOrBlank()) {
                 val userDocRef = firestore.collection("users").document(uid)
 
-                // STEP 1 (PROFILE FIRST): Delete and wipe the root user profile document immediately from server
+                // STEP 1 (PROFILE WIPE WITH CONSENT PRESERVED IN CLOUD):
+                // Reset and wipe all personal records (factory name, title, id, grade, salary, bonus, bills, etc.)
+                // BUT preserve the Privacy Policy Consent record in Firestore so the user is never asked again.
                 try {
-                    userDocRef.delete().awaitResult()
-                    Log.d("OvertimeRepository", "Root profile doc deleted directly from Firestore")
-                } catch (e: Exception) {
-                    Log.w("OvertimeRepository", "Failed direct delete of root user doc, attempting wipe: ${e.message}")
-                    try {
-                        val emptyProfileMap = hashMapOf<String, Any>(
-                            "userName" to "",
-                            "companyName" to "",
-                            "designation" to "",
-                            "workerId" to "",
-                            "grade" to "",
-                            "isCustomSalary" to false,
-                            "basicSalary" to 0.0,
-                            "houseRent" to 0.0,
-                            "medicalAllowance" to 0.0,
-                            "conveyanceAllowance" to 0.0,
-                            "foodAllowance" to 0.0,
-                            "attendanceBonus" to 0.0,
-                            "maxAbsentForBonus" to 0,
-                            "nightBillRate" to 0.0,
-                            "tiffinBillRate" to 0.0,
-                            "customOtRate" to 0.0,
-                            "monthlyOtTargetHours" to 0.0,
-                            "language" to "bn",
-                            "supportWhatsapp" to "",
-                            "hasAcceptedPrivacyPolicy" to false,
-                            "privacyPolicyAcceptedAt" to 0L,
-                            "lastSyncTime" to 0L
-                        )
-                        userDocRef.set(emptyProfileMap).awaitResult()
-                        userDocRef.delete().awaitResult()
-                    } catch (e2: Exception) {
-                        Log.w("OvertimeRepository", "Failed fallback wipe of root user doc: ${e2.message}")
+                    val currentLocal = userProfileDao.getUserProfileOnce()
+                    val consentTime = if ((currentLocal?.privacyPolicyAcceptedAt ?: 0L) > 0L) {
+                        currentLocal!!.privacyPolicyAcceptedAt
+                    } else {
+                        System.currentTimeMillis()
                     }
+
+                    val emptyProfileWithConsent = hashMapOf<String, Any>(
+                        "userName" to "",
+                        "companyName" to "",
+                        "designation" to "",
+                        "workerId" to "",
+                        "grade" to "",
+                        "isCustomSalary" to false,
+                        "basicSalary" to 0.0,
+                        "houseRent" to 0.0,
+                        "medicalAllowance" to 0.0,
+                        "conveyanceAllowance" to 0.0,
+                        "foodAllowance" to 0.0,
+                        "attendanceBonus" to 0.0,
+                        "maxAbsentForBonus" to 0,
+                        "nightBillRate" to 0.0,
+                        "tiffinBillRate" to 0.0,
+                        "customOtRate" to 0.0,
+                        "monthlyOtTargetHours" to 0.0,
+                        "language" to "bn",
+                        "supportWhatsapp" to "",
+                        "lastSyncTime" to 0L,
+                        // CONSENT IS PERMANENTLY PRESERVED IN FIRESTORE PER USER REQUIREMENT:
+                        "hasAcceptedPrivacyPolicy" to true,
+                        "privacyPolicyAcceptedAt" to consentTime,
+                        "consentAudit" to hashMapOf<String, Any>(
+                            "isConsentGiven" to true,
+                            "consentTimestamp" to consentTime,
+                            "policyVersion" to "1.0.10",
+                            "consentDeclaration" to "User agreed to Terms and Privacy Policy before storing salary and overtime data in Firestore."
+                        )
+                    )
+                    userDocRef.set(emptyProfileWithConsent).awaitResult()
+                    Log.d("OvertimeRepository", "Root profile wiped while preserving consent in Firestore")
+                } catch (e: Exception) {
+                    Log.w("OvertimeRepository", "Failed wiping profile fields in root user doc: ${e.message}")
                 }
 
                 // STEP 2: Delete subcollections using batched writes for maximum reliability
@@ -324,11 +384,6 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 } catch (e: Exception) {
                     Log.w("OvertimeRepository", "Failed deleting cloud monthly_salary_settings: ${e.message}")
                 }
-
-                // STEP 3 (FINAL CLEANUP): Re-verify root document is gone
-                try {
-                    userDocRef.delete().awaitResult()
-                } catch (_: Exception) {}
             }
         }
 
@@ -676,7 +731,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             "consentAudit" to hashMapOf<String, Any>(
                 "isConsentGiven" to profile.hasAcceptedPrivacyPolicy,
                 "consentTimestamp" to (if (profile.privacyPolicyAcceptedAt > 0L) profile.privacyPolicyAcceptedAt else System.currentTimeMillis()),
-                "policyVersion" to "1.0.5",
+                "policyVersion" to "1.0.10",
                 "consentDeclaration" to "User agreed to Terms and Privacy Policy before storing salary and overtime data in Firestore."
             ),
             "lastSyncTime" to (if (profile.lastCloudSyncTime > 0) profile.lastCloudSyncTime else System.currentTimeMillis())

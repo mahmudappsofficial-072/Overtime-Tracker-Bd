@@ -74,6 +74,7 @@ fun OvertimeApp(
     val trashItems by viewModel.trashItems.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val isAuthLoading by viewModel.isAuthLoading.collectAsStateWithLifecycle()
+    val pendingConsentUser by viewModel.pendingConsentUser.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val activity = context as? android.app.Activity
 
@@ -134,7 +135,6 @@ fun OvertimeApp(
     var recordToEdit by remember { mutableStateOf<OvertimeRecord?>(null) }
     var showPieceDialog by remember { mutableStateOf(false) }
     var showTargetDialog by remember { mutableStateOf(false) }
-    var showSignInConsentDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -294,12 +294,8 @@ fun OvertimeApp(
                     isAuthLoading = isAuthLoading,
                     onSignInWithGoogle = {
                         activity?.let { act ->
-                            if (!profile.hasAcceptedPrivacyPolicy) {
-                                showSignInConsentDialog = true
-                            } else {
-                                viewModel.signInWithGoogle(act) { err ->
-                                    android.widget.Toast.makeText(act, err, android.widget.Toast.LENGTH_LONG).show()
-                                }
+                            viewModel.signInWithGoogle(act) { err ->
+                                android.widget.Toast.makeText(act, err, android.widget.Toast.LENGTH_LONG).show()
                             }
                         }
                     },
@@ -409,24 +405,19 @@ fun OvertimeApp(
         )
     }
 
-    // Google Sign-In Privacy Consent Dialog (shown only when user clicks Google Sign-In and has not consented yet)
-    if (showSignInConsentDialog) {
+    // Google Sign-In Privacy Consent Dialog (shown AFTER account selection if account hasn't consented yet)
+    val pendingUser = pendingConsentUser
+    if (pendingUser != null) {
         InitialPrivacyConsentDialog(
             lang = lang,
             titleText = if (lang == "bn") "গোপনীয়তা নীতিমালায় সম্মতি" else "Privacy Policy Consent",
             confirmButtonText = if (lang == "bn") "সম্মত আছি ও সাইন ইন" else "Agree & Sign In",
             dismissButtonText = if (lang == "bn") "বাতিল / অফলাইনে ব্যবহার" else "Cancel / Use Offline",
             onAgree = {
-                showSignInConsentDialog = false
-                viewModel.acceptPrivacyPolicy()
-                activity?.let { act ->
-                    viewModel.signInWithGoogle(act) { err ->
-                        android.widget.Toast.makeText(act, err, android.widget.Toast.LENGTH_LONG).show()
-                    }
-                }
+                viewModel.confirmPrivacyConsent(pendingUser)
             },
             onDecline = {
-                showSignInConsentDialog = false
+                viewModel.declinePrivacyConsent()
             },
             onViewFullPolicy = {
                 val privacyUrl = "https://mahmudappsofficial-072.github.io/overtime-tracker-privacy-policy/"

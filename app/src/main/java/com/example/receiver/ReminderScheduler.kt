@@ -71,19 +71,41 @@ object ReminderScheduler {
         }
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setAndAllowWhileIdle(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerCalendar.timeInMillis,
+                        pendingIntent
+                    )
+                } else {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerCalendar.timeInMillis,
+                        pendingIntent
+                    )
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerCalendar.timeInMillis,
                     pendingIntent
                 )
             } else {
-                alarmManager.set(
+                alarmManager.setExact(
                     AlarmManager.RTC_WAKEUP,
                     triggerCalendar.timeInMillis,
                     pendingIntent
                 )
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            try {
+                alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerCalendar.timeInMillis,
+                    pendingIntent
+                )
+            } catch (_: Exception) {}
+        }
     }
 }

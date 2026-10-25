@@ -10,6 +10,7 @@ import com.example.data.model.TrashItem
 import com.example.data.model.UserProfile
 import com.example.data.repository.OvertimeRepository
 import com.example.util.LaborLawCalculator
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +29,9 @@ import java.util.Locale
 class OvertimeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: OvertimeRepository
+    private val _pendingConsentUser = MutableStateFlow<FirebaseUser?>(null)
+    val pendingConsentUser: StateFlow<FirebaseUser?> = _pendingConsentUser.asStateFlow()
+
     init {
         val db = AppDatabase.getDatabase(application)
         repository = OvertimeRepository(db, application)
@@ -36,7 +40,10 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             repository.purgeExpiredTrash()
             com.example.data.auth.AuthManager.currentUser.collect { user ->
                 if (user != null) {
-                    repository.fullAutoSyncAndRestore()
+                    val alreadyConsented = repository.checkUserConsentInCloud(user.uid)
+                    if (alreadyConsented) {
+                        repository.fullAutoSyncAndRestore()
+                    }
                 }
             }
         }
@@ -455,20 +462,45 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             scope = viewModelScope,
             onSuccess = { user ->
                 viewModelScope.launch {
-                    // First restore all profile, overtime, and piece-rate data from Firebase
-                    repository.fullAutoSyncAndRestore()
-
-                    // Only update the user name with Google display name if the restored profile's name is still empty
-                    val profileAfterSync = repository.getProfileOnce()
-                    val newName = user.displayName
-                    if (!newName.isNullOrBlank() && (profileAfterSync.userName.isBlank() || profileAfterSync.userName == "মোঃ শ্রমিক ভাই")) {
-                        val updated = profileAfterSync.copy(userName = newName)
-                        repository.saveProfile(updated)
+                    val alreadyConsented = repository.checkUserConsentInCloud(user.uid)
+                    if (alreadyConsented) {
+                        repository.markConsentGivenLocally()
+                        completePostSignIn(user)
+                    } else {
+                        _pendingConsentUser.value = user
                     }
                 }
             },
             onError = onError
         )
+    }
+
+    private suspend fun completePostSignIn(user: FirebaseUser) {
+        // First restore all profile, overtime, and piece-rate data from Firebase
+        repository.fullAutoSyncAndRestore()
+
+        // Only update the user name with Google display name if the restored profile's name is still empty
+        val profileAfterSync = repository.getProfileOnce()
+        val newName = user.displayName
+        if (!newName.isNullOrBlank() && (profileAfterSync.userName.isBlank() || profileAfterSync.userName == "মোঃ শ্রমিক ভাই")) {
+            val updated = profileAfterSync.copy(userName = newName)
+            repository.saveProfile(updated)
+        }
+    }
+
+    fun confirmPrivacyConsent(user: FirebaseUser) {
+        viewModelScope.launch {
+            repository.saveConsentToCloud(user.uid)
+            _pendingConsentUser.value = null
+            completePostSignIn(user)
+        }
+    }
+
+    fun declinePrivacyConsent() {
+        viewModelScope.launch {
+            _pendingConsentUser.value = null
+            com.example.data.auth.AuthManager.signOut(getApplication())
+        }
     }
 
     fun signOut() {
