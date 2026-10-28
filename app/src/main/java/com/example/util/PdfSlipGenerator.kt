@@ -78,7 +78,13 @@ object PdfSlipGenerator {
         paint.textSize = 12f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         canvas.drawText(if (isBn) "কর্মী নাম: ${profile.userName}" else "Worker Name: ${profile.userName}", 56f, y + 8f, paint)
-        canvas.drawText(if (isBn) "পদবি: ${profile.designation} (${profile.grade})" else "Designation: ${profile.designation} (${profile.grade})", 320f, y + 8f, paint)
+        val formattedGrade = formatDisplayGrade(profile.grade, isBn)
+        val designationLine = if (formattedGrade.isNotBlank()) {
+            if (isBn) "পদবি: ${profile.designation} ($formattedGrade)" else "Designation: ${profile.designation} ($formattedGrade)"
+        } else {
+            if (isBn) "পদবি: ${profile.designation}" else "Designation: ${profile.designation}"
+        }
+        canvas.drawText(designationLine, 320f, y + 8f, paint)
 
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         canvas.drawText(if (isBn) "কার্ড / আইডি নং: ${profile.workerId}" else "Card / ID No: ${profile.workerId}", 56f, y + 36f, paint)
@@ -269,5 +275,18 @@ object PdfSlipGenerator {
         }
 
         return savedUri
+    }
+
+    private fun formatDisplayGrade(grade: String, isBn: Boolean): String {
+        val clean = grade.trim()
+        if (clean.isBlank()) return ""
+        val lower = clean.lowercase()
+        val hasGradeWord = lower.contains("grade") || clean.contains("গ্রেড")
+        return if (hasGradeWord) {
+            if (isBn) clean.replace("Grade", "গ্রেড", ignoreCase = true)
+            else clean.replace("গ্রেড", "Grade")
+        } else {
+            if (isBn) "গ্রেড $clean" else "Grade $clean"
+        }
     }
 }

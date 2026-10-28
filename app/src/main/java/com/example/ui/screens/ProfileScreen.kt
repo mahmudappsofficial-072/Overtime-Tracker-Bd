@@ -414,8 +414,9 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            val displayGrade = formatDisplayGrade(grade, isBn).ifBlank { if (isBn) "গ্রেড" else "Grade" }
                             Text(
-                                text = "${if (isBn) "আইডি" else "ID"}: ${workerId.ifBlank { "N/A" }} • ${grade.ifBlank { if (isBn) "গ্রেড" else "Grade" }}",
+                                text = "${if (isBn) "আইডি" else "ID"}: ${workerId.ifBlank { "N/A" }} • $displayGrade",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -1550,5 +1551,18 @@ fun TrashManagementDialog(
                 }
             }
         )
+    }
+}
+
+private fun formatDisplayGrade(grade: String, isBn: Boolean): String {
+    val clean = grade.trim()
+    if (clean.isBlank()) return ""
+    val lower = clean.lowercase()
+    val hasGradeWord = lower.contains("grade") || clean.contains("গ্রেড")
+    return if (hasGradeWord) {
+        if (isBn) clean.replace("Grade", "গ্রেড", ignoreCase = true)
+        else clean.replace("গ্রেড", "Grade")
+    } else {
+        if (isBn) "গ্রেড $clean" else "Grade $clean"
     }
 }

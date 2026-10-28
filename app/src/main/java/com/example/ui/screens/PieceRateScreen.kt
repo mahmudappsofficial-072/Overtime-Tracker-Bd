@@ -286,7 +286,10 @@ fun PieceRateScreen(
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(if (isBn) "পদবি: ${profile.designation}" else "Designation: ${profile.designation}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                        Text(profile.grade, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                        val displayGrade = formatDisplayGrade(profile.grade, isBn)
+                                        if (displayGrade.isNotBlank()) {
+                                            Text(displayGrade, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                        }
                                     }
                                 }
 
@@ -453,12 +456,13 @@ fun PieceRateScreen(
                         OutlinedButton(
                             onClick = {
                                 val slipText = if (isBn) {
+                                    val gradePart = formatDisplayGrade(profile.grade, true).let { if (it.isNotBlank()) " ($it)" else "" }
                                     """
                                         📄 *${profile.companyName}*
                                         মাসিক বেতন ও ওভারটাইম স্লিপ ($selectedMonth)
                                         -------------------------------
                                         👤 শ্রমিকের নাম: ${profile.userName}
-                                        🆔 আইডি: ${profile.workerId} | পদবি: ${profile.designation} (${profile.grade})
+                                        🆔 আইডি: ${profile.workerId} | পদবি: ${profile.designation}$gradePart
                                         -------------------------------
                                         💵 মূল বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
                                         🏠 বাড়িভাড়া: ${LaborLawCalculator.formatCurrency(profile.houseRent, isBn)}
@@ -471,12 +475,13 @@ fun PieceRateScreen(
                                         _ওভারটাইম ট্র্যাকার বিডি অ্যাপ দ্বারা প্রস্তুতকৃত_
                                     """.trimIndent()
                                 } else {
+                                    val gradePart = formatDisplayGrade(profile.grade, false).let { if (it.isNotBlank()) " ($it)" else "" }
                                     """
                                         📄 *${profile.companyName}*
                                         Monthly Salary & Overtime Slip ($selectedMonth)
                                         -------------------------------
                                         👤 Worker: ${profile.userName}
-                                        🆔 ID: ${profile.workerId} | Designation: ${profile.designation} (${profile.grade})
+                                        🆔 ID: ${profile.workerId} | Designation: ${profile.designation}$gradePart
                                         -------------------------------
                                         💵 Basic Salary: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
                                         🏠 House Rent: ${LaborLawCalculator.formatCurrency(profile.houseRent, isBn)}
@@ -572,5 +577,18 @@ private fun SlipRow(label: String, value: String, isBold: Boolean = false, isDed
             maxLines = 1,
             softWrap = false
         )
+    }
+}
+
+private fun formatDisplayGrade(grade: String, isBn: Boolean): String {
+    val clean = grade.trim()
+    if (clean.isBlank()) return ""
+    val lower = clean.lowercase()
+    val hasGradeWord = lower.contains("grade") || clean.contains("গ্রেড")
+    return if (hasGradeWord) {
+        if (isBn) clean.replace("Grade", "গ্রেড", ignoreCase = true)
+        else clean.replace("গ্রেড", "Grade")
+    } else {
+        if (isBn) "গ্রেড $clean" else "Grade $clean"
     }
 }
