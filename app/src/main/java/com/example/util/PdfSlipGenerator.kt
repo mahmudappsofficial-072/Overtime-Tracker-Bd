@@ -88,7 +88,7 @@ object PdfSlipGenerator {
 
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         canvas.drawText(if (isBn) "কার্ড / আইডি নং: ${profile.workerId}" else "Card / ID No: ${profile.workerId}", 56f, y + 36f, paint)
-        val totalDays = summary.regularDutyDays + summary.dayShiftDays + summary.nightShiftDays + summary.holidayDutyDays
+        val totalDays = summary.regularDutyDays + summary.dayShiftDays + summary.nightShiftDays
         canvas.drawText(if (isBn) "মোট ডিউটি দিন: $totalDays দিন | নাইট: ${summary.nightShiftDays} দিন" else "Total Duty: $totalDays days | Night: ${summary.nightShiftDays} days", 320f, y + 36f, paint)
 
         y += 90f
@@ -103,7 +103,11 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(71, 85, 105)
         paint.textSize = 11f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        canvas.drawText(if (isBn) "ছুটি / সাপ্তাহিক ছুটি: ${summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays} দিন" else "Leave / Weekly Off: ${summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays} days", 56f, y, paint)
+        val weeklyAndHolidays = summary.weeklyOffDays + summary.holidayDutyDays
+        canvas.drawText(if (isBn) "সাপ্তাহিক ও সরকারি ছুটি: $weeklyAndHolidays দিন" else "Weekly Off & Holiday: $weeklyAndHolidays days", 56f, y, paint)
+        canvas.drawText(if (isBn) "সাময়িক ছুটি: ${summary.leaveDays} দিন" else "Leave: ${summary.leaveDays} days", 320f, y, paint)
+        y += 18f
+
         val bonusStatusText = if (summary.attendanceBonus > 0) {
             if (isBn) "(হাজিরা বোনাস অর্জিত)" else "(Attendance Bonus Earned)"
         } else if (summary.absentDays > 0) {
@@ -111,8 +115,8 @@ object PdfSlipGenerator {
         } else {
             ""
         }
-        canvas.drawText(if (isBn) "অনুপস্থিত: ${summary.absentDays} দিন $bonusStatusText" else "Absent: ${summary.absentDays} days $bonusStatusText", 320f, y, paint)
-        y += 28f
+        canvas.drawText(if (isBn) "অনুপস্থিত: ${summary.absentDays} দিন $bonusStatusText" else "Absent: ${summary.absentDays} days $bonusStatusText", 56f, y, paint)
+        y += 20f
 
         // Divider
         paint.color = Color.rgb(226, 232, 240)
@@ -139,11 +143,20 @@ object PdfSlipGenerator {
             y += 18f
         }
 
+        val autoAllowances = if (!profile.isCustomSalary && summary.basicSalary > 0.0) {
+            LaborLawCalculator.calculateAutoAllowances(summary.basicSalary)
+        } else null
+
+        val effHouseRent = if (profile.isCustomSalary) profile.houseRent else (autoAllowances?.houseRent ?: profile.houseRent)
+        val effMedical = if (profile.isCustomSalary) profile.medicalAllowance else (autoAllowances?.medicalAllowance ?: profile.medicalAllowance)
+        val effConveyance = if (profile.isCustomSalary) profile.conveyanceAllowance else (autoAllowances?.conveyanceAllowance ?: profile.conveyanceAllowance)
+        val effFood = if (profile.isCustomSalary) profile.foodAllowance else (autoAllowances?.foodAllowance ?: profile.foodAllowance)
+
         drawPdfRow(if (isBn) "মূল বেতন (Basic Salary)" else "Basic Salary", summary.basicSalary)
-        drawPdfRow(if (isBn) "বাড়িভাড়া ভাতা (House Rent - 50%)" else "House Rent Allowance (50%)", profile.houseRent)
-        drawPdfRow(if (isBn) "চিকিৎসা ভাতা (Medical Allowance)" else "Medical Allowance", profile.medicalAllowance)
-        drawPdfRow(if (isBn) "যাতায়াত ভাতা (Conveyance)" else "Conveyance Allowance", profile.conveyanceAllowance)
-        drawPdfRow(if (isBn) "খাদ্য ভাতা (Food Allowance)" else "Food Allowance", profile.foodAllowance)
+        drawPdfRow(if (isBn) "বাড়িভাড়া ভাতা (House Rent - 50%)" else "House Rent Allowance (50%)", effHouseRent)
+        drawPdfRow(if (isBn) "চিকিৎসা ভাতা (Medical Allowance)" else "Medical Allowance", effMedical)
+        drawPdfRow(if (isBn) "যাতায়াত ভাতা (Conveyance)" else "Conveyance Allowance", effConveyance)
+        drawPdfRow(if (isBn) "খাদ্য ভাতা (Food Allowance)" else "Food Allowance", effFood)
         val attendanceLabel = if (summary.attendanceBonus > 0) {
             if (summary.absentDays > 0) {
                 if (isBn) "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতি অনুমোদিত)" else "Attendance Bonus (${summary.absentDays} absent days allowed)"
@@ -184,6 +197,14 @@ object PdfSlipGenerator {
         if (summary.absentDeduction > 0) {
             paint.color = Color.rgb(220, 38, 38)
             drawPdfRow(if (isBn) "অনুপস্থিতি কর্তন (${summary.absentDays} দিন @ Tk ${String.format("%.2f", summary.dailyAbsentRate)}/দিন)" else "Absent Deduction (${summary.absentDays} days @ Tk ${String.format("%.2f", summary.dailyAbsentRate)}/day)", -summary.absentDeduction, isBold = true)
+        }
+        if (summary.advanceDeduction > 0) {
+            paint.color = Color.rgb(220, 38, 38)
+            drawPdfRow(if (isBn) "অগ্রিম কর্তন (Advance Deduction)" else "Advance Salary Deduction", -summary.advanceDeduction, isBold = true)
+        }
+        if (summary.aponBazarDeduction > 0) {
+            paint.color = Color.rgb(220, 38, 38)
+            drawPdfRow(if (isBn) "আপন বাজার কর্তন (Apon Bazar)" else "Apon Bazar Grocery Deduction", -summary.aponBazarDeduction, isBold = true)
         }
 
         y += 10f

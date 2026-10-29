@@ -59,6 +59,24 @@ data class TrashItem(
         }
     }
 
+    fun toDeductionRecord(): DeductionRecord? {
+        if (itemType != "ADVANCE" && itemType != "APON_BAZAR" && itemType != "DEDUCTION") return null
+        return try {
+            val json = JSONObject(jsonData)
+            DeductionRecord(
+                id = json.optLong("id", 0L),
+                type = json.optString("type", if (itemType == "APON_BAZAR") "APON_BAZAR" else "ADVANCE"),
+                date = json.optString("date", ""),
+                yearMonth = json.optString("yearMonth", ""),
+                amount = json.optDouble("amount", 0.0),
+                description = json.optString("description", ""),
+                createdAt = json.optLong("createdAt", System.currentTimeMillis())
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     companion object {
         fun fromOvertimeRecord(record: OvertimeRecord): TrashItem {
             val json = JSONObject().apply {
@@ -104,6 +122,34 @@ data class TrashItem(
             val subtitle = "${record.pieceCount} পিস • ৳${String.format("%.2f", record.totalAmount)}"
             return TrashItem(
                 itemType = "PIECE",
+                originalId = record.id,
+                title = title,
+                subtitle = subtitle,
+                date = record.date,
+                jsonData = json.toString(),
+                deletedAt = System.currentTimeMillis()
+            )
+        }
+
+        fun fromDeductionRecord(record: DeductionRecord): TrashItem {
+            val json = JSONObject().apply {
+                put("id", record.id)
+                put("type", record.type)
+                put("date", record.date)
+                put("yearMonth", record.yearMonth)
+                put("amount", record.amount)
+                put("description", record.description)
+                put("createdAt", record.createdAt)
+            }
+            val isApon = record.type == "APON_BAZAR"
+            val title = if (isApon) "আপন বাজার: ${record.date}" else "অগ্রিম কর্তন: ${record.date}"
+            val subtitle = if (record.description.isNotBlank()) {
+                "৳${String.format("%.2f", record.amount)} • ${record.description}"
+            } else {
+                "৳${String.format("%.2f", record.amount)}"
+            }
+            return TrashItem(
+                itemType = if (isApon) "APON_BAZAR" else "ADVANCE",
                 originalId = record.id,
                 title = title,
                 subtitle = subtitle,

@@ -225,6 +225,14 @@ fun PieceRateScreen(
                 }
             } else {
                 // Digital Pay Slip View
+                val autoAllowances = if (!profile.isCustomSalary && summary.basicSalary > 0.0) {
+                    LaborLawCalculator.calculateAutoAllowances(summary.basicSalary)
+                } else null
+                val effHouseRent = if (profile.isCustomSalary) profile.houseRent else (autoAllowances?.houseRent ?: profile.houseRent)
+                val effMedical = if (profile.isCustomSalary) profile.medicalAllowance else (autoAllowances?.medicalAllowance ?: profile.medicalAllowance)
+                val effConveyance = if (profile.isCustomSalary) profile.conveyanceAllowance else (autoAllowances?.conveyanceAllowance ?: profile.conveyanceAllowance)
+                val effFood = if (profile.isCustomSalary) profile.foodAllowance else (autoAllowances?.foodAllowance ?: profile.foodAllowance)
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
@@ -302,7 +310,7 @@ fun PieceRateScreen(
                                     style = MaterialTheme.typography.titleSmall
                                 )
 
-                                val totalDutyDays = summary.regularDutyDays + summary.dayShiftDays + summary.nightShiftDays + summary.holidayDutyDays
+                                val totalDutyDays = summary.regularDutyDays + summary.dayShiftDays + summary.nightShiftDays
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -314,7 +322,14 @@ fun PieceRateScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(if (isBn) "ছুটি/সাপ্তাহিক ছুটি: ${LaborLawCalculator.formatNumber((summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays).toDouble(), isBn, 0)} দিন" else "Leave/Weekly Off: ${LaborLawCalculator.formatNumber((summary.weeklyOffDays + summary.holidayDutyDays + summary.leaveDays).toDouble(), isBn, 0)} days", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    val weeklyAndHolidays = summary.weeklyOffDays + summary.holidayDutyDays
+                                    Text(if (isBn) "সাপ্তাহিক ও সরকারি ছুটি: ${LaborLawCalculator.formatNumber(weeklyAndHolidays.toDouble(), isBn, 0)} দিন" else "Weekly Off & Holiday: ${LaborLawCalculator.formatNumber(weeklyAndHolidays.toDouble(), isBn, 0)} days", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(if (isBn) "সাময়িক ছুটি: ${LaborLawCalculator.formatNumber(summary.leaveDays.toDouble(), isBn, 0)} দিন" else "Leave: ${LaborLawCalculator.formatNumber(summary.leaveDays.toDouble(), isBn, 0)} days", fontSize = 12.sp, color = if (summary.leaveDays > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
                                     Text(if (isBn) "অনুপস্থিত: ${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} দিন" else "Absent: ${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} days", fontSize = 12.sp, color = if (summary.absentDays > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                                 }
 
@@ -328,10 +343,10 @@ fun PieceRateScreen(
                                 )
 
                                 SlipRow(if (isBn) "মূল বেতন (Basic Salary)" else "Basic Salary", LaborLawCalculator.formatCurrency(summary.basicSalary, isBn))
-                                SlipRow(if (isBn) "বাড়িভাড়া ভাতা (House Rent)" else "House Rent", LaborLawCalculator.formatCurrency(profile.houseRent, isBn))
-                                SlipRow(if (isBn) "চিকিৎসা ভাতা (Medical)" else "Medical Allowance", LaborLawCalculator.formatCurrency(profile.medicalAllowance, isBn))
-                                SlipRow(if (isBn) "যাতায়াত ভাতা (Conveyance)" else "Conveyance Allowance", LaborLawCalculator.formatCurrency(profile.conveyanceAllowance, isBn))
-                                SlipRow(if (isBn) "খাদ্য ভাতা (Food Allowance)" else "Food Allowance", LaborLawCalculator.formatCurrency(profile.foodAllowance, isBn))
+                                SlipRow(if (isBn) "বাড়িভাড়া ভাতা (House Rent)" else "House Rent", LaborLawCalculator.formatCurrency(effHouseRent, isBn))
+                                SlipRow(if (isBn) "চিকিৎসা ভাতা (Medical)" else "Medical Allowance", LaborLawCalculator.formatCurrency(effMedical, isBn))
+                                SlipRow(if (isBn) "যাতায়াত ভাতা (Conveyance)" else "Conveyance Allowance", LaborLawCalculator.formatCurrency(effConveyance, isBn))
+                                SlipRow(if (isBn) "খাদ্য ভাতা (Food Allowance)" else "Food Allowance", LaborLawCalculator.formatCurrency(effFood, isBn))
                                 val attendanceLabel = if (summary.attendanceBonus > 0) {
                                     if (summary.absentDays > 0) {
                                         if (isBn) {
@@ -390,6 +405,22 @@ fun PieceRateScreen(
                                             "Absent Deduction (${LaborLawCalculator.formatNumber(summary.absentDays.toDouble(), isBn, 0)} days)"
                                         },
                                         "- " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn),
+                                        isBold = true,
+                                        isDeduction = true
+                                    )
+                                }
+                                if (summary.advanceDeduction > 0) {
+                                    SlipRow(
+                                        if (isBn) "অগ্রিম কর্তন" else "Advance Deduction",
+                                        "- " + LaborLawCalculator.formatCurrency(summary.advanceDeduction, isBn),
+                                        isBold = true,
+                                        isDeduction = true
+                                    )
+                                }
+                                if (summary.aponBazarDeduction > 0) {
+                                    SlipRow(
+                                        if (isBn) "আপন বাজার কর্তন" else "Apon Bazar Deduction",
+                                        "- " + LaborLawCalculator.formatCurrency(summary.aponBazarDeduction, isBn),
                                         isBold = true,
                                         isDeduction = true
                                     )
@@ -465,11 +496,11 @@ fun PieceRateScreen(
                                         🆔 আইডি: ${profile.workerId} | পদবি: ${profile.designation}$gradePart
                                         -------------------------------
                                         💵 মূল বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
-                                        🏠 বাড়িভাড়া: ${LaborLawCalculator.formatCurrency(profile.houseRent, isBn)}
-                                        🩺 চিকিৎসা ও খাদ্য ভাতা: ${LaborLawCalculator.formatCurrency(profile.medicalAllowance + profile.foodAllowance, isBn)}
+                                        🏠 বাড়িভাড়া: ${LaborLawCalculator.formatCurrency(effHouseRent, isBn)}
+                                        🩺 চিকিৎসা ও খাদ্য ভাতা: ${LaborLawCalculator.formatCurrency(effMedical + effFood, isBn)}
                                         ⏱️ ওভারটাইম (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ঘ): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}
                                         🌙 নাইট/টিফিন বিল: ${LaborLawCalculator.formatCurrency(summary.nightBillTotal + summary.tiffinBillTotal, isBn)}
-                                        🎯 হাজিরা বোনাস: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                        ❌ অনুপস্থিতি কর্তন (${summary.absentDays} দিন): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}
+                                        🎯 হাজিরা বোনাস: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                        ❌ অনুপস্থিতি কর্তন (${summary.absentDays} দিন): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}${if (summary.advanceDeduction > 0) "\n                                        💸 অগ্রিম কর্তন: - " + LaborLawCalculator.formatCurrency(summary.advanceDeduction, isBn) else ""}${if (summary.aponBazarDeduction > 0) "\n                                        🛒 আপন বাজার কর্তন: - " + LaborLawCalculator.formatCurrency(summary.aponBazarDeduction, isBn) else ""}
                                         -------------------------------
                                         ✅ *মোট প্রদেয় বেতন:* ${LaborLawCalculator.formatCurrency(summary.totalEstimatedEarnings, isBn)}
                                         _ওভারটাইম ট্র্যাকার বিডি অ্যাপ দ্বারা প্রস্তুতকৃত_
@@ -484,11 +515,11 @@ fun PieceRateScreen(
                                         🆔 ID: ${profile.workerId} | Designation: ${profile.designation}$gradePart
                                         -------------------------------
                                         💵 Basic Salary: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
-                                        🏠 House Rent: ${LaborLawCalculator.formatCurrency(profile.houseRent, isBn)}
-                                        🩺 Medical & Food: ${LaborLawCalculator.formatCurrency(profile.medicalAllowance + profile.foodAllowance, isBn)}
+                                        🏠 House Rent: ${LaborLawCalculator.formatCurrency(effHouseRent, isBn)}
+                                        🩺 Medical & Food: ${LaborLawCalculator.formatCurrency(effMedical + effFood, isBn)}
                                         ⏱️ Overtime (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} hrs): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}
                                         🌙 Night/Tiffin Bill: ${LaborLawCalculator.formatCurrency(summary.nightBillTotal + summary.tiffinBillTotal, isBn)}
-                                        🎯 Attendance Bonus: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                        ❌ Absent Deduction (${summary.absentDays} days): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}
+                                        🎯 Attendance Bonus: ${LaborLawCalculator.formatCurrency(summary.attendanceBonus, isBn)}${if (summary.absentDeduction > 0) "\n                                        ❌ Absent Deduction (${summary.absentDays} days): - " + LaborLawCalculator.formatCurrency(summary.absentDeduction, isBn) else ""}${if (summary.advanceDeduction > 0) "\n                                        💸 Advance Deduction: - " + LaborLawCalculator.formatCurrency(summary.advanceDeduction, isBn) else ""}${if (summary.aponBazarDeduction > 0) "\n                                        🛒 Apon Bazar Deduction: - " + LaborLawCalculator.formatCurrency(summary.aponBazarDeduction, isBn) else ""}
                                         -------------------------------
                                         ✅ *Total Payable Salary:* ${LaborLawCalculator.formatCurrency(summary.totalEstimatedEarnings, isBn)}
                                         _Generated by Overtime Tracker BD App_

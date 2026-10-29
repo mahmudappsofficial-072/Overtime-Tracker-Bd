@@ -96,13 +96,23 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             initialValue = null
         )
 
-    // Summary calculation state - Combines userProfile, month snapshot settings, OT and piece records
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val monthlyDeductions: StateFlow<List<com.example.data.model.DeductionRecord>> = _selectedYearMonth
+        .flatMapLatest { ym -> repository.getDeductionsForMonth(ym) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // Summary calculation state - Combines userProfile, month snapshot settings, OT, piece, and deduction records
     val monthlySummary = combine(
         userProfile,
         currentMonthSettings,
         monthlyOtRecords,
-        monthlyPieceRecords
-    ) { profile, monthSnapshot, otList, pieceList ->
+        monthlyPieceRecords,
+        monthlyDeductions
+    ) { profile, monthSnapshot, otList, pieceList, deductionList ->
         // Use month snapshot if available (e.g. from that specific month), otherwise fallback to profile
         val isCustom = monthSnapshot?.isCustomSalary ?: profile.isCustomSalary
         val baseBasic = if (monthSnapshot != null && monthSnapshot.basicSalary > 0.0) monthSnapshot.basicSalary else profile.basicSalary
@@ -190,7 +200,13 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
         } else {
             0.0
         }
-        val totalEstimatedEarnings = (grossSalary - absentDeduction).coerceAtLeast(0.0) + totalOtAmount + nightBillTotal + tiffinBillTotal + totalPieceAmount + attendanceBonus
+
+        val advanceDeduction = deductionList.filter { it.type == "ADVANCE" }.sumOf { it.amount }
+        val aponBazarDeduction = deductionList.filter { it.type == "APON_BAZAR" }.sumOf { it.amount }
+
+        val totalEstimatedEarnings = (grossSalary - absentDeduction).coerceAtLeast(0.0) +
+            totalOtAmount + nightBillTotal + tiffinBillTotal + totalPieceAmount + attendanceBonus -
+            advanceDeduction - aponBazarDeduction
 
         val targetHours = profile.monthlyOtTargetHours
         val progress = if (targetHours > 0) (totalOtHours / targetHours).coerceIn(0.0, 1.0).toFloat() else 0f
@@ -211,6 +227,8 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             attendanceBonus = attendanceBonus,
             dailyAbsentRate = dailyAbsentRate,
             absentDeduction = absentDeduction,
+            advanceDeduction = advanceDeduction,
+            aponBazarDeduction = aponBazarDeduction,
             totalEstimatedEarnings = totalEstimatedEarnings,
             targetHours = targetHours,
             targetProgress = progress,
@@ -231,6 +249,32 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
 
     fun setYearMonth(yearMonth: String) {
         _selectedYearMonth.value = yearMonth
+    }
+
+    fun addDeduction(type: String, date: String, amount: Double, description: String = "") {
+        viewModelScope.launch {
+            val ym = if (date.length >= 7) date.substring(0, 7) else _selectedYearMonth.value
+            val record = com.example.data.model.DeductionRecord(
+                type = type,
+                date = date,
+                yearMonth = ym,
+                amount = amount,
+                description = description.trim()
+            )
+            repository.saveDeduction(record)
+        }
+    }
+
+    fun deleteDeduction(id: Long) {
+        viewModelScope.launch {
+            repository.deleteDeduction(id)
+        }
+    }
+
+    fun moveDeductionToTrash(record: com.example.data.model.DeductionRecord) {
+        viewModelScope.launch {
+            repository.moveDeductionToTrash(record)
+        }
     }
 
     fun previousMonth() {
@@ -544,6 +588,8 @@ data class MonthlySummaryState(
     val attendanceBonus: Double = 0.0,
     val dailyAbsentRate: Double = 0.0,
     val absentDeduction: Double = 0.0,
+    val advanceDeduction: Double = 0.0,
+    val aponBazarDeduction: Double = 0.0,
     val totalEstimatedEarnings: Double = 0.0,
     val targetHours: Double = 0.0,
     val targetProgress: Float = 0f,

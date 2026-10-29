@@ -71,6 +71,7 @@ fun OvertimeApp(
     val otRecords by viewModel.monthlyOtRecords.collectAsStateWithLifecycle()
     val pieceRecords by viewModel.monthlyPieceRecords.collectAsStateWithLifecycle()
     val summary by viewModel.monthlySummary.collectAsStateWithLifecycle()
+    val deductions by viewModel.monthlyDeductions.collectAsStateWithLifecycle()
     val trashItems by viewModel.trashItems.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val isAuthLoading by viewModel.isAuthLoading.collectAsStateWithLifecycle()
@@ -234,12 +235,19 @@ fun OvertimeApp(
                     summary = summary,
                     profile = profile,
                     recentRecords = otRecords,
+                    deductions = deductions,
                     onPreviousMonth = { viewModel.previousMonth() },
                     onNextMonth = { viewModel.nextMonth() },
                     onToggleLanguage = { viewModel.toggleLanguage() },
                     onQuickAddOtClick = {
                         recordToEdit = null
                         showQuickOtDialog = true
+                    },
+                    onAddDeduction = { type, date, amount, desc ->
+                        viewModel.addDeduction(type, date, amount, desc)
+                    },
+                    onDeleteDeduction = { record ->
+                        viewModel.moveDeductionToTrash(record)
                     },
                     onEditTargetClick = { showTargetDialog = true },
                     onRecordClick = { rec ->

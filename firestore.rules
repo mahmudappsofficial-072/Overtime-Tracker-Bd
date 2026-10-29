@@ -15,6 +15,10 @@ service cloud.firestore {
       match /monthly_salary_settings/{yearMonth} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      match /deduction_records/{recordId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }

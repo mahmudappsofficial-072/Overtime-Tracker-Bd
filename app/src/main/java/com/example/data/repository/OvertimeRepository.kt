@@ -32,6 +32,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
     private val userProfileDao = database.userProfileDao()
     private val monthlySalaryDao = database.monthlySalaryDao()
     private val trashDao = database.trashDao()
+    private val deductionDao = database.deductionDao()
 
     val allTrashItems: Flow<List<TrashItem>> = trashDao.getAllTrashItems()
 
@@ -104,6 +105,27 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         monthlySalaryDao.insertOrUpdate(settings)
         syncScope.launch {
             autoSyncMonthlySalaryToCloud(settings)
+        }
+    }
+
+    // Deductions (Advance & Apon Bazar)
+    fun getDeductionsForMonth(yearMonth: String): Flow<List<com.example.data.model.DeductionRecord>> {
+        return deductionDao.getDeductionsForMonth(yearMonth)
+    }
+
+    suspend fun saveDeduction(record: com.example.data.model.DeductionRecord): Long {
+        val id = deductionDao.insertOrUpdate(record)
+        val saved = record.copy(id = id)
+        syncScope.launch {
+            autoSyncDeductionToCloud(saved)
+        }
+        return id
+    }
+
+    suspend fun deleteDeduction(id: Long) {
+        deductionDao.deleteById(id)
+        syncScope.launch {
+            autoDeleteDeductionFromCloud(id)
         }
     }
 
@@ -187,6 +209,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             overtimeDao.deleteAllRecords()
             pieceRateDao.deleteAllPieceRecords()
             monthlySalaryDao.deleteAll()
+            deductionDao.deleteAll()
             trashDao.clearAllTrash()
             scheduleTrashAutoDelete()
 
@@ -384,6 +407,25 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 } catch (e: Exception) {
                     Log.w("OvertimeRepository", "Failed deleting cloud monthly_salary_settings: ${e.message}")
                 }
+
+                // 2d. deduction_records
+                try {
+                    val dedSnap = userDocRef.collection("deduction_records").get().awaitResult()
+                    if (!dedSnap.isEmpty) {
+                        val batch = firestore.batch()
+                        var count = 0
+                        for (doc in dedSnap.documents) {
+                            batch.delete(doc.reference)
+                            count++
+                            if (count % 450 == 0) {
+                                batch.commit().awaitResult()
+                            }
+                        }
+                        batch.commit().awaitResult()
+                    }
+                } catch (e: Exception) {
+                    Log.w("OvertimeRepository", "Failed deleting cloud deduction_records: ${e.message}")
+                }
             }
         }
 
@@ -500,6 +542,33 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             Log.d("OvertimeRepository", "Auto sync monthly salary settings success: ${settings.yearMonth}")
         } catch (e: Exception) {
             Log.w("OvertimeRepository", "Auto sync monthly salary settings failed: ${e.message}")
+        }
+    }
+
+    private suspend fun autoSyncDeductionToCloud(record: com.example.data.model.DeductionRecord) {
+        val currentProfile = getProfileOnce()
+        val docId = getDocId(currentProfile) ?: return
+        try {
+            val map = deductionToMap(record)
+            firestore.collection("users").document(docId)
+                .collection("deduction_records").document(record.id.toString())
+                .set(map, SetOptions.merge()).awaitResult()
+            markProfileSynced(currentProfile)
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Auto sync deduction failed: ${e.message}")
+        }
+    }
+
+    private suspend fun autoDeleteDeductionFromCloud(id: Long) {
+        val currentProfile = getProfileOnce()
+        val docId = getDocId(currentProfile) ?: return
+        try {
+            firestore.collection("users").document(docId)
+                .collection("deduction_records").document(id.toString())
+                .delete().awaitResult()
+            markProfileSynced(currentProfile)
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Auto delete deduction failed: ${e.message}")
         }
     }
 
@@ -687,6 +756,22 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 monthlySalaryDao.insertOrUpdate(remoteMs)
             }
 
+            // 8. Upload local Deductions to cloud
+            val localDeductions = deductionDao.getAllDeductions()
+            for (ded in localDeductions) {
+                userDocRef.collection("deduction_records").document(ded.id.toString())
+                    .set(deductionToMap(ded), SetOptions.merge()).awaitResult()
+            }
+
+            // 9. Download / Restore Deductions from cloud
+            val dedQuerySnap = userDocRef.collection("deduction_records").get().awaitResult()
+            for (doc in dedQuerySnap.documents) {
+                val data = doc.data ?: continue
+                val remoteDed = mapToDeduction(data) ?: continue
+                val targetId = if (remoteDed.id > 0L) remoteDed.id else (doc.id.toLongOrNull() ?: 0L)
+                deductionDao.insertOrUpdate(remoteDed.copy(id = targetId))
+            }
+
             // 8. Ensure profile in Room DB has latest sync timestamp and status using currentProfile
             val finalProfile = currentProfile.copy(
                 lastCloudSyncTime = now,
@@ -849,6 +934,37 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         )
     }
 
+    private fun deductionToMap(record: com.example.data.model.DeductionRecord): Map<String, Any> {
+        return hashMapOf(
+            "id" to record.id,
+            "type" to record.type,
+            "date" to record.date,
+            "yearMonth" to record.yearMonth,
+            "amount" to record.amount,
+            "description" to record.description,
+            "createdAt" to record.createdAt
+        )
+    }
+
+    private fun mapToDeduction(map: Map<String, Any?>): com.example.data.model.DeductionRecord? {
+        val type = map["type"] as? String ?: return null
+        val date = map["date"] as? String ?: return null
+        val ym = map["yearMonth"] as? String ?: (if (date.length >= 7) date.substring(0, 7) else return null)
+        val amount = getDoubleFromField(map["amount"])
+        val desc = map["description"] as? String ?: ""
+        val id = (map["id"] as? Number)?.toLong() ?: 0L
+        val createdAt = (map["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
+        return com.example.data.model.DeductionRecord(
+            id = id,
+            type = type,
+            date = date,
+            yearMonth = ym,
+            amount = amount,
+            description = desc,
+            createdAt = createdAt
+        )
+    }
+
     private fun scheduleTrashAutoDelete() {
         try {
             val ctx = context ?: try { com.example.OvertimeApp.instance } catch (_: Exception) { null }
@@ -870,6 +986,12 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         scheduleTrashAutoDelete()
     }
 
+    suspend fun moveDeductionToTrash(record: com.example.data.model.DeductionRecord) = withContext(Dispatchers.IO) {
+        trashDao.insertTrashItem(TrashItem.fromDeductionRecord(record))
+        deleteDeduction(record.id)
+        scheduleTrashAutoDelete()
+    }
+
     suspend fun restoreTrashItem(item: TrashItem) = withContext(Dispatchers.IO) {
         when (item.itemType) {
             "OT" -> {
@@ -882,6 +1004,12 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 val record = item.toPieceRateRecord()
                 if (record != null) {
                     insertPieceRate(record)
+                }
+            }
+            "ADVANCE", "APON_BAZAR", "DEDUCTION" -> {
+                val record = item.toDeductionRecord()
+                if (record != null) {
+                    saveDeduction(record)
                 }
             }
         }

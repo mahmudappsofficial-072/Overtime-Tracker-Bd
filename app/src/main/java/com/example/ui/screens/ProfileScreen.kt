@@ -930,7 +930,7 @@ fun ProfileScreen(
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
-                                        text = if (isBn) "ডিলিট করা ওটি ও পিস রেট ১ দিন জমা থাকে" else "Deleted records are kept for 1 day",
+                                        text = if (isBn) "ডিলিট করা রেকর্ড ১ দিন জমা থাকে" else "Deleted records are kept for 1 day",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1416,19 +1416,37 @@ fun TrashManagementDialog(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        val badgeColor = when (item.itemType) {
+                                            "OT" -> MaterialTheme.colorScheme.primaryContainer
+                                            "PIECE" -> MaterialTheme.colorScheme.secondaryContainer
+                                            "ADVANCE" -> MaterialTheme.colorScheme.tertiaryContainer
+                                            "APON_BAZAR" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+                                            else -> MaterialTheme.colorScheme.surfaceVariant
+                                        }
+                                        val badgeTextColor = when (item.itemType) {
+                                            "OT" -> MaterialTheme.colorScheme.onPrimaryContainer
+                                            "PIECE" -> MaterialTheme.colorScheme.onSecondaryContainer
+                                            "ADVANCE" -> MaterialTheme.colorScheme.onTertiaryContainer
+                                            "APON_BAZAR" -> MaterialTheme.colorScheme.onErrorContainer
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                        val badgeLabel = when (item.itemType) {
+                                            "OT" -> if (isBn) "ওভারটাইম" else "Overtime"
+                                            "PIECE" -> if (isBn) "পিস রেট" else "Piece Rate"
+                                            "ADVANCE" -> if (isBn) "অগ্রিম কর্তন" else "Advance"
+                                            "APON_BAZAR" -> if (isBn) "আপন বাজার" else "Apon Bazar"
+                                            else -> item.itemType
+                                        }
+
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = if (item.itemType == "OT") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+                                            color = badgeColor
                                         ) {
                                             Text(
-                                                text = if (item.itemType == "OT") {
-                                                    if (isBn) "ওভারটাইম" else "Overtime"
-                                                } else {
-                                                    if (isBn) "পিস রেট" else "Piece Rate"
-                                                },
+                                                text = badgeLabel,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (item.itemType == "OT") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                                                color = badgeTextColor,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
@@ -1442,7 +1460,15 @@ fun TrashManagementDialog(
                                     }
 
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    val displayTitle = if (isBn) item.title else item.title.replace("ওভারটাইম:", "Overtime:").replace("পিস রেট:", "Piece Rate:")
+                                    val displayTitle = if (isBn) {
+                                        item.title
+                                    } else {
+                                        item.title
+                                            .replace("ওভারটাইম:", "Overtime:")
+                                            .replace("পিস রেট:", "Piece Rate:")
+                                            .replace("অগ্রিম কর্তন:", "Advance:")
+                                            .replace("আপন বাজার:", "Apon Bazar:")
+                                    }
                                     val displaySubtitle = if (isBn) item.subtitle else item.subtitle.replace("ঘণ্টা", "hrs").replace("পিস", "pcs")
                                     Text(
                                         text = displayTitle,
