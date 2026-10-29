@@ -14,10 +14,15 @@ class TrashAutoDeleteReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getDatabase(context)
-                val cutoff = System.currentTimeMillis() - TrashAutoDeleteScheduler.TWENTY_FOUR_HOURS_MILLIS
-                db.trashDao().purgeExpiredTrash(cutoff)
-                TrashAutoDeleteScheduler.scheduleNextAutoDelete(context)
+                val repo = com.example.data.repository.OvertimeRepository(db, context)
+                repo.purgeExpiredTrash()
             } catch (_: Exception) {
+                try {
+                    val db = AppDatabase.getDatabase(context)
+                    val cutoff = System.currentTimeMillis() - TrashAutoDeleteScheduler.TWENTY_FOUR_HOURS_MILLIS
+                    db.trashDao().purgeExpiredTrash(cutoff)
+                    TrashAutoDeleteScheduler.scheduleNextAutoDelete(context)
+                } catch (_: Exception) {}
             } finally {
                 pendingResult.finish()
             }

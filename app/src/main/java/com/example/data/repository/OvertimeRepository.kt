@@ -426,6 +426,25 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 } catch (e: Exception) {
                     Log.w("OvertimeRepository", "Failed deleting cloud deduction_records: ${e.message}")
                 }
+
+                // 2e. trash_records
+                try {
+                    val trSnap = userDocRef.collection("trash_records").get().awaitResult()
+                    if (!trSnap.isEmpty) {
+                        val batch = firestore.batch()
+                        var count = 0
+                        for (doc in trSnap.documents) {
+                            batch.delete(doc.reference)
+                            count++
+                            if (count % 450 == 0) {
+                                batch.commit().awaitResult()
+                            }
+                        }
+                        batch.commit().awaitResult()
+                    }
+                } catch (e: Exception) {
+                    Log.w("OvertimeRepository", "Failed deleting cloud trash_records: ${e.message}")
+                }
             }
         }
 
@@ -569,6 +588,52 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             markProfileSynced(currentProfile)
         } catch (e: Exception) {
             Log.w("OvertimeRepository", "Auto delete deduction failed: ${e.message}")
+        }
+    }
+
+    private suspend fun autoSyncTrashToCloud(item: TrashItem) {
+        val currentProfile = getProfileOnce()
+        val docId = getDocId(currentProfile) ?: return
+        try {
+            val map = trashToMap(item)
+            firestore.collection("users").document(docId)
+                .collection("trash_records").document(item.id.toString())
+                .set(map, SetOptions.merge()).awaitResult()
+            markProfileSynced(currentProfile)
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Auto sync trash failed: ${e.message}")
+        }
+    }
+
+    private suspend fun autoDeleteTrashFromCloud(id: Long) {
+        val currentProfile = getProfileOnce()
+        val docId = getDocId(currentProfile) ?: return
+        try {
+            firestore.collection("users").document(docId)
+                .collection("trash_records").document(id.toString())
+                .delete().awaitResult()
+            markProfileSynced(currentProfile)
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Auto delete trash failed: ${e.message}")
+        }
+    }
+
+    private suspend fun autoClearAllTrashFromCloud() {
+        val currentProfile = getProfileOnce()
+        val docId = getDocId(currentProfile) ?: return
+        try {
+            val snap = firestore.collection("users").document(docId)
+                .collection("trash_records").get().awaitResult()
+            if (!snap.isEmpty) {
+                val batch = firestore.batch()
+                for (doc in snap.documents) {
+                    batch.delete(doc.reference)
+                }
+                batch.commit().awaitResult()
+            }
+            markProfileSynced(currentProfile)
+        } catch (e: Exception) {
+            Log.w("OvertimeRepository", "Auto clear all trash failed: ${e.message}")
         }
     }
 
@@ -772,6 +837,41 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 deductionDao.insertOrUpdate(remoteDed.copy(id = targetId))
             }
 
+            // 10. Upload local Trash to cloud
+            val localTrash = trashDao.getAllTrashItemsOnce()
+            for (tr in localTrash) {
+                userDocRef.collection("trash_records").document(tr.id.toString())
+                    .set(trashToMap(tr), SetOptions.merge()).awaitResult()
+            }
+
+            // 11. Download / Restore Trash from cloud with 24-hour expiration filter
+            val trashQuerySnap = userDocRef.collection("trash_records").get().awaitResult()
+            val cutoff = now - com.example.receiver.TrashAutoDeleteScheduler.TWENTY_FOUR_HOURS_MILLIS
+            val trashPurgeBatch = firestore.batch()
+            var anyExpiredTrash = false
+
+            for (doc in trashQuerySnap.documents) {
+                val data = doc.data ?: continue
+                val remoteTrash = mapToTrash(data) ?: continue
+                if (remoteTrash.deletedAt <= cutoff) {
+                    // Older than 24 hours: permanently delete from Cloud Firestore!
+                    trashPurgeBatch.delete(doc.reference)
+                    anyExpiredTrash = true
+                } else {
+                    // Still within 24 hours: restore to local Room database!
+                    val targetId = if (remoteTrash.id > 0L) remoteTrash.id else (doc.id.toLongOrNull() ?: 0L)
+                    trashDao.insertTrashItem(remoteTrash.copy(id = targetId))
+                }
+            }
+            if (anyExpiredTrash) {
+                try {
+                    trashPurgeBatch.commit().awaitResult()
+                } catch (e: Exception) {
+                    Log.w("OvertimeRepository", "Purge expired trash batch failed: ${e.message}")
+                }
+            }
+            scheduleTrashAutoDelete()
+
             // 8. Ensure profile in Room DB has latest sync timestamp and status using currentProfile
             val finalProfile = currentProfile.copy(
                 lastCloudSyncTime = now,
@@ -965,6 +1065,42 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         )
     }
 
+    private fun trashToMap(item: TrashItem): Map<String, Any> {
+        val expireAt = item.deletedAt + com.example.receiver.TrashAutoDeleteScheduler.TWENTY_FOUR_HOURS_MILLIS
+        return hashMapOf(
+            "id" to item.id,
+            "itemType" to item.itemType,
+            "originalId" to item.originalId,
+            "title" to item.title,
+            "subtitle" to item.subtitle,
+            "date" to item.date,
+            "jsonData" to item.jsonData,
+            "deletedAt" to item.deletedAt,
+            "expireAt" to expireAt
+        )
+    }
+
+    private fun mapToTrash(map: Map<String, Any?>): TrashItem? {
+        val itemType = map["itemType"] as? String ?: return null
+        val title = map["title"] as? String ?: ""
+        val subtitle = map["subtitle"] as? String ?: ""
+        val date = map["date"] as? String ?: ""
+        val jsonData = map["jsonData"] as? String ?: return null
+        val id = (map["id"] as? Number)?.toLong() ?: 0L
+        val originalId = (map["originalId"] as? Number)?.toLong() ?: 0L
+        val deletedAt = (map["deletedAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
+        return TrashItem(
+            id = id,
+            itemType = itemType,
+            originalId = originalId,
+            title = title,
+            subtitle = subtitle,
+            date = date,
+            jsonData = jsonData,
+            deletedAt = deletedAt
+        )
+    }
+
     private fun scheduleTrashAutoDelete() {
         try {
             val ctx = context ?: try { com.example.OvertimeApp.instance } catch (_: Exception) { null }
@@ -975,19 +1111,28 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
     }
 
     suspend fun moveOvertimeToTrash(record: OvertimeRecord) = withContext(Dispatchers.IO) {
-        trashDao.insertTrashItem(TrashItem.fromOvertimeRecord(record))
+        val trash = TrashItem.fromOvertimeRecord(record)
+        val id = trashDao.insertTrashItem(trash)
+        val savedTrash = trash.copy(id = id)
+        syncScope.launch { autoSyncTrashToCloud(savedTrash) }
         deleteOvertime(record.id)
         scheduleTrashAutoDelete()
     }
 
     suspend fun movePieceRateToTrash(record: PieceRateRecord) = withContext(Dispatchers.IO) {
-        trashDao.insertTrashItem(TrashItem.fromPieceRateRecord(record))
+        val trash = TrashItem.fromPieceRateRecord(record)
+        val id = trashDao.insertTrashItem(trash)
+        val savedTrash = trash.copy(id = id)
+        syncScope.launch { autoSyncTrashToCloud(savedTrash) }
         deletePieceRate(record.id)
         scheduleTrashAutoDelete()
     }
 
     suspend fun moveDeductionToTrash(record: com.example.data.model.DeductionRecord) = withContext(Dispatchers.IO) {
-        trashDao.insertTrashItem(TrashItem.fromDeductionRecord(record))
+        val trash = TrashItem.fromDeductionRecord(record)
+        val id = trashDao.insertTrashItem(trash)
+        val savedTrash = trash.copy(id = id)
+        syncScope.launch { autoSyncTrashToCloud(savedTrash) }
         deleteDeduction(record.id)
         scheduleTrashAutoDelete()
     }
@@ -1014,22 +1159,48 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             }
         }
         trashDao.deleteTrashItem(item)
+        syncScope.launch { autoDeleteTrashFromCloud(item.id) }
         scheduleTrashAutoDelete()
     }
 
     suspend fun deleteTrashItemPermanently(item: TrashItem) = withContext(Dispatchers.IO) {
         trashDao.deleteTrashItem(item)
+        syncScope.launch { autoDeleteTrashFromCloud(item.id) }
         scheduleTrashAutoDelete()
     }
 
     suspend fun clearAllTrash() = withContext(Dispatchers.IO) {
         trashDao.clearAllTrash()
+        syncScope.launch { autoClearAllTrashFromCloud() }
         scheduleTrashAutoDelete()
     }
 
     suspend fun purgeExpiredTrash(): Int = withContext(Dispatchers.IO) {
         val cutoff = System.currentTimeMillis() - com.example.receiver.TrashAutoDeleteScheduler.TWENTY_FOUR_HOURS_MILLIS
         val purgedCount = trashDao.purgeExpiredTrash(cutoff)
+        val docId = getDocId()
+        if (docId != null) {
+            try {
+                val trSnap = firestore.collection("users").document(docId)
+                    .collection("trash_records").get().awaitResult()
+                if (!trSnap.isEmpty) {
+                    val batch = firestore.batch()
+                    var anyExpired = false
+                    for (doc in trSnap.documents) {
+                        val deletedAt = (doc.data?.get("deletedAt") as? Number)?.toLong() ?: 0L
+                        if (deletedAt > 0L && deletedAt <= cutoff) {
+                            batch.delete(doc.reference)
+                            anyExpired = true
+                        }
+                    }
+                    if (anyExpired) {
+                        batch.commit().awaitResult()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("OvertimeRepository", "Purge expired trash from cloud failed: ${e.message}")
+            }
+        }
         scheduleTrashAutoDelete()
         purgedCount
     }

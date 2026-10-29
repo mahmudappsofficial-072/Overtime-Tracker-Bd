@@ -13,6 +13,9 @@ interface TrashDao {
     @Query("SELECT * FROM trash_items ORDER BY deletedAt DESC")
     fun getAllTrashItems(): Flow<List<TrashItem>>
 
+    @Query("SELECT * FROM trash_items ORDER BY deletedAt DESC")
+    suspend fun getAllTrashItemsOnce(): List<TrashItem>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTrashItem(item: TrashItem): Long
 
