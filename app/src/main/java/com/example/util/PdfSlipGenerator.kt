@@ -104,13 +104,16 @@ object PdfSlipGenerator {
         paint.textSize = 11f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         val weeklyAndHolidays = summary.weeklyOffDays + summary.holidayDutyDays
+        val leaveStatusText = if (summary.isBonusCancelledDueToLeave) {
+            if (isBn) " (হাজিরা বোনাস বাতিল)" else " (Bonus Cancelled)"
+        } else ""
         canvas.drawText(if (isBn) "সাপ্তাহিক ও সরকারি ছুটি: $weeklyAndHolidays দিন" else "Weekly Off & Holiday: $weeklyAndHolidays days", 56f, y, paint)
-        canvas.drawText(if (isBn) "সাময়িক ছুটি: ${summary.leaveDays} দিন" else "Leave: ${summary.leaveDays} days", 320f, y, paint)
+        canvas.drawText(if (isBn) "সাময়িক ছুটি: ${summary.leaveDays} দিন$leaveStatusText" else "Leave: ${summary.leaveDays} days$leaveStatusText", 320f, y, paint)
         y += 18f
 
         val bonusStatusText = if (summary.attendanceBonus > 0) {
             if (isBn) "(হাজিরা বোনাস অর্জিত)" else "(Attendance Bonus Earned)"
-        } else if (summary.absentDays > 0) {
+        } else if (summary.isBonusCancelledDueToAbsent || summary.absentDays > 0) {
             if (isBn) "(হাজিরা বোনাস কর্তন)" else "(Attendance Bonus Deducted)"
         } else {
             ""
@@ -163,7 +166,11 @@ object PdfSlipGenerator {
             } else {
                 if (isBn) "হাজিরা বোনাস (নিয়মিত উপস্থিতি)" else "Attendance Bonus (Regular Attendance)"
             }
-        } else if (summary.absentDays > 0) {
+        } else if (summary.isBonusCancelledDueToAbsent && summary.isBonusCancelledDueToLeave) {
+            if (isBn) "হাজিরা বোনাস (অনুপস্থিতি ও সাময়িক ছুটির কারণে বাতিল)" else "Attendance Bonus (Cancelled for Absent & Leave Limit)"
+        } else if (summary.isBonusCancelledDueToLeave) {
+            if (isBn) "হাজিরা বোনাস (${summary.leaveDays} দিন সাময়িক ছুটির কারণে বাতিল)" else "Attendance Bonus (Cancelled for ${summary.leaveDays} leave days)"
+        } else if (summary.isBonusCancelledDueToAbsent || summary.absentDays > 0) {
             if (isBn) "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতির জন্য বাতিল)" else "Attendance Bonus (Cancelled for ${summary.absentDays} absent days)"
         } else {
             if (isBn) "হাজিরা বোনাস" else "Attendance Bonus"

@@ -431,6 +431,27 @@ fun QuickOtEntryDialog(
                             modifier = Modifier.padding(14.dp)
                         )
                     }
+
+                    if (selectedShift == ShiftType.LEAVE.code) {
+                        OutlinedTextField(
+                            value = note,
+                            onValueChange = { note = it },
+                            label = { Text(if (isBn) "ছুটির কারণ" else "Reason for Leave") },
+                            placeholder = { Text(if (isBn) "যেমন: অসুস্থতা, গ্রামের বাড়ি যাওয়া, পারিবারিক কাজ" else "e.g. Sick leave, Personal emergency") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("leave_reason_input"),
+                            singleLine = false,
+                            maxLines = 3
+                        )
+                    }
                 } else {
                     // Regular OT Inputs (Visible only for regular/work shifts)
 

@@ -564,6 +564,7 @@ fun HomeScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             val isBonusEarned = summary.attendanceBonus > 0
+                            val isBonusLost = summary.isBonusCancelledDueToAbsent || summary.isBonusCancelledDueToLeave || summary.absentDays > 0
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -573,12 +574,12 @@ fun HomeScreen(
                                 Text(
                                     text = if (isBonusEarned) {
                                         if (isBn) "অর্জিত" else "Earned"
-                                    } else if (summary.absentDays > 0) {
+                                    } else if (isBonusLost) {
                                         if (isBn) "বাতিল" else "Lost"
                                     } else "0",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isBonusEarned) SuccessGreen else if (summary.absentDays > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isBonusEarned) SuccessGreen else if (isBonusLost) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Spacer(modifier = Modifier.height(2.dp))
@@ -887,6 +888,14 @@ fun HomeScreen(
                                     if (record.hasTiffinBill) {
                                         Text(if (isBn) "• টিফিন" else "• Tiffin", fontSize = 10.sp, color = WarningOrange, fontWeight = FontWeight.Bold)
                                     }
+                                }
+                                if (record.note.isNotBlank()) {
+                                    Text(
+                                        text = if (record.shiftType == "LEAVE") (if (isBn) "ছুটির কারণ: ${record.note}" else "Reason: ${record.note}") else record.note,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
                                 }
                             }
                         }

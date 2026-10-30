@@ -190,8 +190,13 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
         }
 
         val allowedAbsents = if (monthSnapshot != null) monthSnapshot.maxAbsentForBonus else profile.maxAbsentForBonus
+        val allowedLeaves = if (monthSnapshot != null) monthSnapshot.maxLeaveForBonus else profile.maxLeaveForBonus
         val bonusRate = if (monthSnapshot != null && monthSnapshot.attendanceBonus > 0.0) monthSnapshot.attendanceBonus else profile.attendanceBonus
-        val attendanceBonus = if (baseBasic > 0.0 && absentDays <= allowedAbsents) bonusRate else 0.0
+        val isAbsentPenalty = absentDays > allowedAbsents
+        val isLeavePenalty = allowedLeaves != null && leaveDays > allowedLeaves
+        val isBonusCancelledDueToAbsent = (baseBasic > 0.0 && bonusRate > 0.0) && isAbsentPenalty
+        val isBonusCancelledDueToLeave = (baseBasic > 0.0 && bonusRate > 0.0) && isLeavePenalty
+        val attendanceBonus = if (baseBasic > 0.0 && !isAbsentPenalty && !isLeavePenalty) bonusRate else 0.0
         
         // Labor law absent deduction: calculated from month's basic salary (Basic / 30)
         val dailyAbsentRate = if (baseBasic > 0.0) baseBasic / 30.0 else 0.0
@@ -239,7 +244,10 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             holidayDutyDays = holidayDutyDays,
             weeklyOffDays = weeklyOffDays,
             leaveDays = leaveDays,
-            absentDays = absentDays
+            absentDays = absentDays,
+            isBonusCancelledDueToLeave = isBonusCancelledDueToLeave,
+            isBonusCancelledDueToAbsent = isBonusCancelledDueToAbsent,
+            maxAllowedLeaveForBonus = allowedLeaves
         )
     }.stateIn(
         scope = viewModelScope,
@@ -338,6 +346,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
                 hourlyOtRate = otRate,
                 attendanceBonus = updated.attendanceBonus,
                 maxAbsentForBonus = updated.maxAbsentForBonus,
+                maxLeaveForBonus = updated.maxLeaveForBonus,
                 nightBillRate = updated.nightBillRate,
                 tiffinBillRate = updated.tiffinBillRate,
                 isCustomSalary = updated.isCustomSalary
@@ -388,6 +397,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
                     hourlyOtRate = effectiveRate,
                     attendanceBonus = profile.attendanceBonus,
                     maxAbsentForBonus = profile.maxAbsentForBonus,
+                    maxLeaveForBonus = profile.maxLeaveForBonus,
                     nightBillRate = profile.nightBillRate,
                     tiffinBillRate = profile.tiffinBillRate,
                     isCustomSalary = profile.isCustomSalary
@@ -600,5 +610,8 @@ data class MonthlySummaryState(
     val holidayDutyDays: Int = 0,
     val weeklyOffDays: Int = 0,
     val leaveDays: Int = 0,
-    val absentDays: Int = 0
+    val absentDays: Int = 0,
+    val isBonusCancelledDueToLeave: Boolean = false,
+    val isBonusCancelledDueToAbsent: Boolean = false,
+    val maxAllowedLeaveForBonus: Int? = null
 )

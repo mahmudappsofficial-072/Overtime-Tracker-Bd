@@ -263,6 +263,7 @@ fun OvertimeApp(
                     hourlyRate = summary.hourlyOtRate,
                     dailyAbsentRate = summary.dailyAbsentRate,
                     attendanceBonus = summary.attendanceBonus,
+                    isBonusCancelled = summary.isBonusCancelledDueToAbsent || summary.isBonusCancelledDueToLeave,
                     lang = lang,
                     onPreviousMonth = { viewModel.previousMonth() },
                     onNextMonth = { viewModel.nextMonth() },

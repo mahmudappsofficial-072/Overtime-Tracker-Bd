@@ -99,6 +99,9 @@ fun ProfileScreen(
     var maxAbsentForBonusText by remember(profile) {
         mutableStateOf(if (profile.maxAbsentForBonus <= 0) "0" else profile.maxAbsentForBonus.toString())
     }
+    var maxLeaveForBonusText by remember(profile.maxLeaveForBonus) {
+        mutableStateOf(if (profile.maxLeaveForBonus == null) "" else profile.maxLeaveForBonus.toString())
+    }
     var nightBillRateText by remember(profile) {
         mutableStateOf(if (profile.nightBillRate == 0.0) "0" else profile.nightBillRate.toInt().toString())
     }
@@ -126,6 +129,7 @@ fun ProfileScreen(
             foodText = "0"
             attendanceBonusText = "0"
             maxAbsentForBonusText = "0"
+            maxLeaveForBonusText = ""
             nightBillRateText = "0"
             tiffinBillRateText = "0"
             customOtRateText = "0"
@@ -854,6 +858,7 @@ fun ProfileScreen(
                         foodAllowance = food,
                         attendanceBonus = attendance,
                         maxAbsentForBonus = maxAbsentThreshold,
+                        maxLeaveForBonus = maxLeaveForBonusText.toIntOrNull(),
                         nightBillRate = night,
                         tiffinBillRate = tiffin,
                         customOtRate = customOt,
@@ -1160,6 +1165,92 @@ fun ProfileScreen(
                                     fontSize = 13.sp
                                 )
                             }
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+
+                            // Allowed Leave Days for Attendance Bonus
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (isBn) "হাজিরা বোনাসে সাময়িক ছুটির অনুমোদিত সীমা" else "Allowed Leave Days for Attendance Bonus",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                OutlinedTextField(
+                                    value = maxLeaveForBonusText,
+                                    onValueChange = { input ->
+                                        if (input.all { it.isDigit() }) {
+                                            maxLeaveForBonusText = input
+                                        }
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            text = if (isBn) "দিন সংখ্যা (যেমন: ২)" else "Days (e.g. 2)",
+                                            fontSize = 12.sp
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("max_leave_bonus_input"),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(8.dp),
+                                    trailingIcon = {
+                                        if (maxLeaveForBonusText.isNotEmpty()) {
+                                            IconButton(onClick = { maxLeaveForBonusText = "" }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Clear,
+                                                    contentDescription = "Clear",
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+
+                                Button(
+                                    onClick = {
+                                        val parsedLimit = maxLeaveForBonusText.toIntOrNull()
+                                        val updated = profile.copy(maxLeaveForBonus = parsedLimit)
+                                        onSaveProfile(updated)
+                                        Toast.makeText(
+                                            context,
+                                            if (isBn) "সাময়িক ছুটির সীমা সংরক্ষিত হয়েছে!" else "Leave limit saved!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("save_leave_limit_button"),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Save,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(if (isBn) "সংরক্ষণ করুন" else "Save")
+                                }
+                            }
                         }
                     }
                 }
@@ -1226,6 +1317,7 @@ fun ProfileScreen(
                         foodText = "0"
                         attendanceBonusText = "0"
                         maxAbsentForBonusText = "0"
+                        maxLeaveForBonusText = ""
                         nightBillRateText = "0"
                         tiffinBillRateText = "0"
                         customOtRateText = "0"

@@ -229,6 +229,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 foodAllowance = 0.0,
                 attendanceBonus = 0.0,
                 maxAbsentForBonus = 0,
+                maxLeaveForBonus = null,
                 nightBillRate = 0.0,
                 tiffinBillRate = 0.0,
                 customOtRate = 0.0,
@@ -689,6 +690,10 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                     val cloudTargetHours = getDoubleFromField(data["monthlyOtTargetHours"])
                     val cloudIsCustom = getBooleanFromField(data["isCustomSalary"])
                     val cloudMaxAbsent = ((data["maxAbsentForBonus"] as? Number)?.toInt() ?: 0).coerceAtLeast(0)
+                    val cloudMaxLeave = if (data.containsKey("maxLeaveForBonus")) {
+                        val num = (data["maxLeaveForBonus"] as? Number)?.toInt()
+                        if (num == null || num < 0) null else num
+                    } else null
                     val cloudWhatsapp = (data["supportWhatsapp"] as? String)?.trim() ?: ""
                     val cloudLang = (data["language"] as? String)?.trim() ?: "bn"
                     val cloudSyncTime = (data["lastSyncTime"] as? Number)?.toLong() ?: 0L
@@ -726,6 +731,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                             foodAllowance = if (cloudFood > 0.0) cloudFood else currentProfile.foodAllowance,
                             attendanceBonus = if (cloudAttendanceBonus > 0.0) cloudAttendanceBonus else currentProfile.attendanceBonus,
                             maxAbsentForBonus = if (data.containsKey("maxAbsentForBonus")) cloudMaxAbsent else currentProfile.maxAbsentForBonus,
+                            maxLeaveForBonus = if (data.containsKey("maxLeaveForBonus")) cloudMaxLeave else currentProfile.maxLeaveForBonus,
                             nightBillRate = if (cloudNightBill > 0.0) cloudNightBill else currentProfile.nightBillRate,
                             tiffinBillRate = if (cloudTiffinBill > 0.0) cloudTiffinBill else currentProfile.tiffinBillRate,
                             customOtRate = if (cloudCustomOt > 0.0) cloudCustomOt else currentProfile.customOtRate,
@@ -905,6 +911,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             "foodAllowance" to profile.foodAllowance,
             "attendanceBonus" to profile.attendanceBonus,
             "maxAbsentForBonus" to profile.maxAbsentForBonus,
+            "maxLeaveForBonus" to (profile.maxLeaveForBonus ?: -1),
             "nightBillRate" to profile.nightBillRate,
             "tiffinBillRate" to profile.tiffinBillRate,
             "customOtRate" to profile.customOtRate,
@@ -1007,6 +1014,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             "hourlyOtRate" to settings.hourlyOtRate,
             "attendanceBonus" to settings.attendanceBonus,
             "maxAbsentForBonus" to settings.maxAbsentForBonus,
+            "maxLeaveForBonus" to (settings.maxLeaveForBonus ?: -1),
             "nightBillRate" to settings.nightBillRate,
             "tiffinBillRate" to settings.tiffinBillRate,
             "isCustomSalary" to settings.isCustomSalary,
@@ -1027,6 +1035,10 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             hourlyOtRate = getDoubleFromField(map["hourlyOtRate"]),
             attendanceBonus = getDoubleFromField(map["attendanceBonus"]),
             maxAbsentForBonus = ((map["maxAbsentForBonus"] as? Number)?.toInt() ?: 1).coerceAtLeast(0),
+            maxLeaveForBonus = if (map.containsKey("maxLeaveForBonus")) {
+                val num = (map["maxLeaveForBonus"] as? Number)?.toInt()
+                if (num == null || num < 0) null else num
+            } else null,
             nightBillRate = getDoubleFromField(map["nightBillRate"]),
             tiffinBillRate = getDoubleFromField(map["tiffinBillRate"]),
             isCustomSalary = getBooleanFromField(map["isCustomSalary"]),

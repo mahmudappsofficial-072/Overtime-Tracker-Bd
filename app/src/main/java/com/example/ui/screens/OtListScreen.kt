@@ -31,6 +31,7 @@ fun OtListScreen(
     hourlyRate: Double,
     dailyAbsentRate: Double = 0.0,
     attendanceBonus: Double = 0.0,
+    isBonusCancelled: Boolean = false,
     lang: String,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -114,14 +115,15 @@ fun OtListScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(if (isBn) "হাজিরা বোনাস" else "Attendance Bonus", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 val isBonusEarned = attendanceBonus > 0
+                                val isBonusLost = isBonusCancelled || absentCount > 0
                                 Text(
                                     text = if (isBonusEarned) {
                                         if (isBn) "অর্জিত ✅" else "Earned ✅"
-                                    } else if (absentCount > 0) {
+                                    } else if (isBonusLost) {
                                         if (isBn) "কর্তন ❌" else "Deducted ❌"
                                     } else "0",
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isBonusEarned) SuccessGreen else if (absentCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isBonusEarned) SuccessGreen else if (isBonusLost) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -221,7 +223,7 @@ fun OtListScreen(
                                         )
                                         if (record.note.isNotBlank()) {
                                             Text(
-                                                text = record.note,
+                                                text = if (record.shiftType == "LEAVE") (if (isBn) "ছুটির কারণ: ${record.note}" else "Reason: ${record.note}") else record.note,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )

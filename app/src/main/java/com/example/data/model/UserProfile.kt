@@ -20,6 +20,7 @@ data class UserProfile(
     val foodAllowance: Double = 0.0,
     val attendanceBonus: Double = 0.0,
     val maxAbsentForBonus: Int = 0, // Number of absent days allowed without bonus penalty
+    val maxLeaveForBonus: Int? = null, // Number of temporary leave days allowed without bonus penalty
     val nightBillRate: Double = 0.0,
     val tiffinBillRate: Double = 0.0,
     val customOtRate: Double = 0.0,
