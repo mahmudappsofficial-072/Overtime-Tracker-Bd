@@ -321,7 +321,7 @@ fun OvertimeApp(
                             val msg = if (success) {
                                 if (lang == "bn") "সকল ডেটা সফলভাবে মুছে ফেলা হয়েছে" else "All data deleted successfully"
                             } else {
-                                if (lang == "bn") "ডেটা মুছতে সমস্যা হয়েছে" else "Failed to delete data"
+                                if (lang == "bn") "ডেটা মুছতে সমস্যা হয়েছে (ইন্টারনেট সংযোগ চেক করুন)" else "Failed to delete data. Please check internet connection."
                             }
                             android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
                         }

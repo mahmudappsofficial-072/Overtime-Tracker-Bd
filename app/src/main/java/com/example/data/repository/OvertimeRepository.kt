@@ -9,6 +9,7 @@ import com.example.data.model.UserProfile
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.Source
 import kotlinx.coroutines.CoroutineScope
@@ -204,8 +205,8 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         }
     }
 
-    suspend fun clearAllLocalData() {
-        try {
+    suspend fun clearAllLocalData(): Boolean {
+        return try {
             overtimeDao.deleteAllRecords()
             pieceRateDao.deleteAllPieceRecords()
             monthlySalaryDao.deleteAll()
@@ -236,14 +237,16 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 monthlyOtTargetHours = 0.0,
                 language = current?.language ?: "bn",
                 supportWhatsapp = "",
-                hasAcceptedPrivacyPolicy = false,
-                privacyPolicyAcceptedAt = 0L,
+                hasAcceptedPrivacyPolicy = current?.hasAcceptedPrivacyPolicy ?: false,
+                privacyPolicyAcceptedAt = current?.privacyPolicyAcceptedAt ?: 0L,
                 lastCloudSyncTime = 0L,
                 cloudSyncStatus = if ((current?.language ?: "bn") == "bn") "লগইন নেই (লোকাল)" else "Not logged in (Local)"
             )
             userProfileDao.insertOrUpdateProfile(cleanProfile)
+            true
         } catch (e: Exception) {
             Log.e("OvertimeRepository", "Error clearing local data", e)
+            false
         }
     }
 
@@ -297,7 +300,22 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         )
     }
 
-    suspend fun deleteAllUserData(isCloudSignedIn: Boolean) = withContext(Dispatchers.IO) {
+    private suspend fun deleteCollectionInBatches(query: Query) {
+        val snap = query.get().awaitResult()
+        if (!snap.isEmpty) {
+            for (chunk in snap.documents.chunked(400)) {
+                val batch = firestore.batch()
+                for (doc in chunk) {
+                    batch.delete(doc.reference)
+                }
+                batch.commit().awaitResult()
+            }
+        }
+    }
+
+    suspend fun deleteAllUserData(isCloudSignedIn: Boolean): Boolean = withContext(Dispatchers.IO) {
+        var cloudSuccess = true
+
         if (isCloudSignedIn) {
             val uid = auth.currentUser?.uid
             if (!uid.isNullOrBlank()) {
@@ -328,6 +346,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                         "foodAllowance" to 0.0,
                         "attendanceBonus" to 0.0,
                         "maxAbsentForBonus" to 0,
+                        "maxLeaveForBonus" to -1,
                         "nightBillRate" to 0.0,
                         "tiffinBillRate" to 0.0,
                         "customOtRate" to 0.0,
@@ -348,109 +367,30 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                     userDocRef.set(emptyProfileWithConsent).awaitResult()
                     Log.d("OvertimeRepository", "Root profile wiped while preserving consent in Firestore")
                 } catch (e: Exception) {
-                    Log.w("OvertimeRepository", "Failed wiping profile fields in root user doc: ${e.message}")
+                    cloudSuccess = false
+                    Log.e("OvertimeRepository", "Failed wiping profile fields in root user doc: ${e.message}", e)
                 }
 
-                // STEP 2: Delete subcollections using batched writes for maximum reliability
-                // 2a. overtime_records
+                // STEP 2: Delete subcollections using safe batched writes (400 items per batch)
                 try {
-                    val otSnap = userDocRef.collection("overtime_records").get().awaitResult()
-                    if (!otSnap.isEmpty) {
-                        val batch = firestore.batch()
-                        var count = 0
-                        for (doc in otSnap.documents) {
-                            batch.delete(doc.reference)
-                            count++
-                            if (count % 450 == 0) {
-                                batch.commit().awaitResult()
-                            }
-                        }
-                        batch.commit().awaitResult()
-                    }
+                    deleteCollectionInBatches(userDocRef.collection("overtime_records"))
+                    deleteCollectionInBatches(userDocRef.collection("piece_rate_records"))
+                    deleteCollectionInBatches(userDocRef.collection("monthly_salary_settings"))
+                    deleteCollectionInBatches(userDocRef.collection("deduction_records"))
+                    deleteCollectionInBatches(userDocRef.collection("trash_records"))
                 } catch (e: Exception) {
-                    Log.w("OvertimeRepository", "Failed deleting cloud overtime_records: ${e.message}")
+                    cloudSuccess = false
+                    Log.e("OvertimeRepository", "Failed deleting cloud subcollections: ${e.message}", e)
                 }
-
-                // 2b. piece_rate_records
-                try {
-                    val prSnap = userDocRef.collection("piece_rate_records").get().awaitResult()
-                    if (!prSnap.isEmpty) {
-                        val batch = firestore.batch()
-                        var count = 0
-                        for (doc in prSnap.documents) {
-                            batch.delete(doc.reference)
-                            count++
-                            if (count % 450 == 0) {
-                                batch.commit().awaitResult()
-                            }
-                        }
-                        batch.commit().awaitResult()
-                    }
-                } catch (e: Exception) {
-                    Log.w("OvertimeRepository", "Failed deleting cloud piece_rate_records: ${e.message}")
-                }
-
-                // 2c. monthly_salary_settings
-                try {
-                    val msSnap = userDocRef.collection("monthly_salary_settings").get().awaitResult()
-                    if (!msSnap.isEmpty) {
-                        val batch = firestore.batch()
-                        var count = 0
-                        for (doc in msSnap.documents) {
-                            batch.delete(doc.reference)
-                            count++
-                            if (count % 450 == 0) {
-                                batch.commit().awaitResult()
-                            }
-                        }
-                        batch.commit().awaitResult()
-                    }
-                } catch (e: Exception) {
-                    Log.w("OvertimeRepository", "Failed deleting cloud monthly_salary_settings: ${e.message}")
-                }
-
-                // 2d. deduction_records
-                try {
-                    val dedSnap = userDocRef.collection("deduction_records").get().awaitResult()
-                    if (!dedSnap.isEmpty) {
-                        val batch = firestore.batch()
-                        var count = 0
-                        for (doc in dedSnap.documents) {
-                            batch.delete(doc.reference)
-                            count++
-                            if (count % 450 == 0) {
-                                batch.commit().awaitResult()
-                            }
-                        }
-                        batch.commit().awaitResult()
-                    }
-                } catch (e: Exception) {
-                    Log.w("OvertimeRepository", "Failed deleting cloud deduction_records: ${e.message}")
-                }
-
-                // 2e. trash_records
-                try {
-                    val trSnap = userDocRef.collection("trash_records").get().awaitResult()
-                    if (!trSnap.isEmpty) {
-                        val batch = firestore.batch()
-                        var count = 0
-                        for (doc in trSnap.documents) {
-                            batch.delete(doc.reference)
-                            count++
-                            if (count % 450 == 0) {
-                                batch.commit().awaitResult()
-                            }
-                        }
-                        batch.commit().awaitResult()
-                    }
-                } catch (e: Exception) {
-                    Log.w("OvertimeRepository", "Failed deleting cloud trash_records: ${e.message}")
-                }
+            } else {
+                cloudSuccess = false
             }
         }
 
         // Always clear all local data in Room database
-        clearAllLocalData()
+        val localSuccess = clearAllLocalData()
+
+        cloudSuccess && localSuccess
     }
 
     // --- Automatic Firebase Sync Engine ---

@@ -568,13 +568,13 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 val isCloud = currentUser.value != null
-                repository.deleteAllUserData(isCloud)
-                if (isCloud) {
+                val success = repository.deleteAllUserData(isCloud)
+                if (isCloud && success) {
                     com.example.data.auth.AuthManager.signOut(getApplication())
                 }
                 val currentCalendarYm = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date())
                 _selectedYearMonth.value = currentCalendarYm
-                onComplete(true)
+                onComplete(success)
             } catch (e: Exception) {
                 android.util.Log.e("OvertimeViewModel", "Failed to delete all data: ${e.message}", e)
                 onComplete(false)
