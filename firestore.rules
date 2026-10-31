@@ -1,28 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper functions for zero-trust user authentication
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. Root user profile & privacy consent document
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
 
+      // 2. Daily Overtime and Duty records
       match /overtime_records/{recordId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
 
+      // 3. Piece Rate production records
       match /piece_rate_records/{recordId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
 
+      // 4. Monthly salary and rate snapshots
       match /monthly_salary_settings/{yearMonth} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
 
+      // 5. Advance & Apon Bazar deduction records
       match /deduction_records/{recordId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
 
+      // 6. Recycle bin / Trash records
       match /trash_records/{trashId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
+    }
+
+    // Deny access to any other unspecified path by default
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
