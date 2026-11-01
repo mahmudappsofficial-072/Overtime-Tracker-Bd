@@ -277,7 +277,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 "consentAudit" to hashMapOf<String, Any>(
                     "isConsentGiven" to true,
                     "consentTimestamp" to now,
-                    "policyVersion" to "1.0.10",
+                    "policyVersion" to "1.0.11",
                     "consentDeclaration" to "User agreed to Terms and Privacy Policy before storing salary and overtime data in Firestore."
                 )
             )
@@ -360,7 +360,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                         "consentAudit" to hashMapOf<String, Any>(
                             "isConsentGiven" to true,
                             "consentTimestamp" to consentTime,
-                            "policyVersion" to "1.0.10",
+                            "policyVersion" to "1.0.11",
                             "consentDeclaration" to "User agreed to Terms and Privacy Policy before storing salary and overtime data in Firestore."
                         )
                     )
@@ -387,10 +387,15 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             }
         }
 
-        // Always clear all local data in Room database
+        if (isCloudSignedIn && !cloudSuccess) {
+            // Cloud wipe failed (e.g. no internet). Do NOT wipe local data to prevent silent desync!
+            return@withContext false
+        }
+
+        // Clear all local data in Room database
         val localSuccess = clearAllLocalData()
 
-        cloudSuccess && localSuccess
+        localSuccess
     }
 
     // --- Automatic Firebase Sync Engine ---
@@ -563,15 +568,9 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         val currentProfile = getProfileOnce()
         val docId = getDocId(currentProfile) ?: return
         try {
-            val snap = firestore.collection("users").document(docId)
-                .collection("trash_records").get().awaitResult()
-            if (!snap.isEmpty) {
-                val batch = firestore.batch()
-                for (doc in snap.documents) {
-                    batch.delete(doc.reference)
-                }
-                batch.commit().awaitResult()
-            }
+            deleteCollectionInBatches(
+                firestore.collection("users").document(docId).collection("trash_records")
+            )
             markProfileSynced(currentProfile)
         } catch (e: Exception) {
             Log.w("OvertimeRepository", "Auto clear all trash failed: ${e.message}")
@@ -666,7 +665,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                             isCustomSalary = cloudIsCustom,
                             basicSalary = if (cloudBasic > 0.0) cloudBasic else currentProfile.basicSalary,
                             houseRent = if (cloudHouseRent > 0.0) cloudHouseRent else currentProfile.houseRent,
-                            medicalAllowance = 750.0, // Fixed 750 as per BD RMG standard
+                            medicalAllowance = if (cloudMedical > 0.0) cloudMedical else 750.0,
                             conveyanceAllowance = if (cloudConveyance > 0.0) cloudConveyance else currentProfile.conveyanceAllowance,
                             foodAllowance = if (cloudFood > 0.0) cloudFood else currentProfile.foodAllowance,
                             attendanceBonus = if (cloudAttendanceBonus > 0.0) cloudAttendanceBonus else currentProfile.attendanceBonus,
@@ -746,10 +745,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             for (doc in prQuerySnap.documents) {
                 val data = doc.data ?: continue
                 val remotePr = mapToPieceRate(data) ?: continue
-                val existingLocal = pieceRateDao.getPieceRecordById(remotePr.id)
-                if (existingLocal == null) {
-                    pieceRateDao.insertPieceRecord(remotePr)
-                }
+                pieceRateDao.insertPieceRecord(remotePr)
             }
 
             // 6. Upload local Monthly Salary Settings to cloud
@@ -863,7 +859,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             "consentAudit" to hashMapOf<String, Any>(
                 "isConsentGiven" to profile.hasAcceptedPrivacyPolicy,
                 "consentTimestamp" to (if (profile.privacyPolicyAcceptedAt > 0L) profile.privacyPolicyAcceptedAt else System.currentTimeMillis()),
-                "policyVersion" to "1.0.10",
+                "policyVersion" to "1.0.11",
                 "consentDeclaration" to "User agreed to Terms and Privacy Policy before storing salary and overtime data in Firestore."
             ),
             "lastSyncTime" to (if (profile.lastCloudSyncTime > 0) profile.lastCloudSyncTime else System.currentTimeMillis())
