@@ -20,5 +20,10 @@ data class MonthlySalarySettings(
     val nightBillRate: Double = 0.0,
     val tiffinBillRate: Double = 0.0,
     val isCustomSalary: Boolean = false,
+    val userName: String = "",
+    val companyName: String = "",
+    val designation: String = "",
+    val workerId: String = "",
+    val grade: String = "",
     val updatedAt: Long = System.currentTimeMillis()
 )

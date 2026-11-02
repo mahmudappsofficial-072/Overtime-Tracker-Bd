@@ -49,7 +49,7 @@ object PdfSlipGenerator {
         paint.color = Color.WHITE
         paint.textSize = 20f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        val company = if (profile.companyName.isNotBlank()) profile.companyName else "Garments & Factory Ltd."
+        val company = if (summary.companyName.isNotBlank()) summary.companyName else if (profile.companyName.isNotBlank()) profile.companyName else "Garments & Factory Ltd."
         canvas.drawText(company, 44f, 60f, paint)
 
         // Title
@@ -74,20 +74,25 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(255, 255, 255)
         canvas.drawRect(44f, y - 16f, pageWidth - 44f, y + 60f, paint)
 
+        val displayUserName = if (summary.userName.isNotBlank()) summary.userName else profile.userName
+        val displayDesignation = if (summary.designation.isNotBlank()) summary.designation else profile.designation
+        val displayGrade = if (summary.grade.isNotBlank()) summary.grade else profile.grade
+        val displayWorkerId = if (summary.workerId.isNotBlank()) summary.workerId else profile.workerId
+
         paint.color = Color.rgb(30, 41, 59)
         paint.textSize = 12f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText(if (isBn) "কর্মী নাম: ${profile.userName}" else "Worker Name: ${profile.userName}", 56f, y + 8f, paint)
-        val formattedGrade = formatDisplayGrade(profile.grade, isBn)
+        canvas.drawText(if (isBn) "কর্মী নাম: $displayUserName" else "Worker Name: $displayUserName", 56f, y + 8f, paint)
+        val formattedGrade = formatDisplayGrade(displayGrade, isBn)
         val designationLine = if (formattedGrade.isNotBlank()) {
-            if (isBn) "পদবি: ${profile.designation} ($formattedGrade)" else "Designation: ${profile.designation} ($formattedGrade)"
+            if (isBn) "পদবি: $displayDesignation ($formattedGrade)" else "Designation: $displayDesignation ($formattedGrade)"
         } else {
-            if (isBn) "পদবি: ${profile.designation}" else "Designation: ${profile.designation}"
+            if (isBn) "পদবি: $displayDesignation" else "Designation: $displayDesignation"
         }
         canvas.drawText(designationLine, 320f, y + 8f, paint)
 
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        canvas.drawText(if (isBn) "কার্ড / আইডি নং: ${profile.workerId}" else "Card / ID No: ${profile.workerId}", 56f, y + 36f, paint)
+        canvas.drawText(if (isBn) "কার্ড / আইডি নং: $displayWorkerId" else "Card / ID No: $displayWorkerId", 56f, y + 36f, paint)
         val totalDays = summary.regularDutyDays + summary.dayShiftDays + summary.nightShiftDays
         canvas.drawText(if (isBn) "মোট ডিউটি দিন: $totalDays দিন | নাইট: ${summary.nightShiftDays} দিন" else "Total Duty: $totalDays days | Night: ${summary.nightShiftDays} days", 320f, y + 36f, paint)
 
@@ -150,10 +155,10 @@ object PdfSlipGenerator {
             LaborLawCalculator.calculateAutoAllowances(summary.basicSalary)
         } else null
 
-        val effHouseRent = if (profile.isCustomSalary) profile.houseRent else (autoAllowances?.houseRent ?: profile.houseRent)
-        val effMedical = if (profile.isCustomSalary) profile.medicalAllowance else (autoAllowances?.medicalAllowance ?: profile.medicalAllowance)
-        val effConveyance = if (profile.isCustomSalary) profile.conveyanceAllowance else (autoAllowances?.conveyanceAllowance ?: profile.conveyanceAllowance)
-        val effFood = if (profile.isCustomSalary) profile.foodAllowance else (autoAllowances?.foodAllowance ?: profile.foodAllowance)
+        val effHouseRent = if (summary.houseRent > 0.0) summary.houseRent else if (profile.isCustomSalary) profile.houseRent else (autoAllowances?.houseRent ?: profile.houseRent)
+        val effMedical = if (summary.medicalAllowance > 0.0) summary.medicalAllowance else if (profile.isCustomSalary) profile.medicalAllowance else (autoAllowances?.medicalAllowance ?: profile.medicalAllowance)
+        val effConveyance = if (summary.conveyanceAllowance > 0.0) summary.conveyanceAllowance else if (profile.isCustomSalary) profile.conveyanceAllowance else (autoAllowances?.conveyanceAllowance ?: profile.conveyanceAllowance)
+        val effFood = if (summary.foodAllowance > 0.0) summary.foodAllowance else if (profile.isCustomSalary) profile.foodAllowance else (autoAllowances?.foodAllowance ?: profile.foodAllowance)
 
         drawPdfRow(if (isBn) "মূল বেতন" else "Basic Salary", summary.basicSalary)
         drawPdfRow(if (isBn) "বাড়িভাড়া ভাতা (৫০%)" else "House Rent Allowance (50%)", effHouseRent)
@@ -193,10 +198,12 @@ object PdfSlipGenerator {
 
         drawPdfRow(if (isBn) "ওভারটাইম আয় (${String.format("%.1f", summary.totalOtHours)} ঘণ্টা @ Tk ${String.format("%.2f", summary.hourlyOtRate)}/ঘণ্টা)" else "Overtime Income (${String.format("%.1f", summary.totalOtHours)} hrs @ Tk ${String.format("%.2f", summary.hourlyOtRate)}/hr)", summary.totalOtAmount, isBold = true)
         if (summary.nightBillTotal > 0) {
-            drawPdfRow(if (isBn) "নাইট বিল (${summary.nightBillCount}টি @ Tk ${String.format("%.0f", profile.nightBillRate)})" else "Night Bill (${summary.nightBillCount} nights @ Tk ${String.format("%.0f", profile.nightBillRate)})", summary.nightBillTotal)
+            val nightRate = if (summary.effectiveNightRate > 0.0) summary.effectiveNightRate else profile.nightBillRate
+            drawPdfRow(if (isBn) "নাইট বিল (${summary.nightBillCount}টি @ Tk ${String.format("%.0f", nightRate)})" else "Night Bill (${summary.nightBillCount} nights @ Tk ${String.format("%.0f", nightRate)})", summary.nightBillTotal)
         }
         if (summary.tiffinBillTotal > 0) {
-            drawPdfRow(if (isBn) "টিফিন বিল (${summary.tiffinBillCount}টি @ Tk ${String.format("%.0f", profile.tiffinBillRate)})" else "Tiffin Bill (${summary.tiffinBillCount} days @ Tk ${String.format("%.0f", profile.tiffinBillRate)})", summary.tiffinBillTotal)
+            val tiffinRate = if (summary.effectiveTiffinRate > 0.0) summary.effectiveTiffinRate else profile.tiffinBillRate
+            drawPdfRow(if (isBn) "টিফিন বিল (${summary.tiffinBillCount}টি @ Tk ${String.format("%.0f", tiffinRate)})" else "Tiffin Bill (${summary.tiffinBillCount} days @ Tk ${String.format("%.0f", tiffinRate)})", summary.tiffinBillTotal)
         }
         drawPdfRow(if (isBn) "পিস রেট আয়" else "Piece Rate Earnings", summary.totalPieceAmount, isBold = summary.totalPieceAmount > 0)
 

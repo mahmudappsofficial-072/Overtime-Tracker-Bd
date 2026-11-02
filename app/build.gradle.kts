@@ -16,15 +16,15 @@ android {
     applicationId = "com.overtime.bd"
     minSdk = 24
     targetSdk = 36
-    versionCode = 12
-    versionName = "1.0.11"
+    versionCode = 13
+    versionName = "1.0.12"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/mymy-upload-key-upload-key.jks"
+      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
       keyAlias = "upload"
@@ -39,7 +39,7 @@ android {
   }
 
   buildTypes {
-    releaserelease {
+    release {
       isCrunchPngs = false
       isMinifyEnabled = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

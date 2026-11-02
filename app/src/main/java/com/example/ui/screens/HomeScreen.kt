@@ -913,7 +913,9 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                         } else {
-                            val itemRate = if (record.hourlyRateSnapshot > 0.0) record.hourlyRateSnapshot else summary.hourlyOtRate
+                            val currentCalendarYm = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date())
+                            val isRunningMonth = record.yearMonth >= currentCalendarYm
+                            val itemRate = if (isRunningMonth) summary.hourlyOtRate else (if (record.hourlyRateSnapshot > 0.0) record.hourlyRateSnapshot else summary.hourlyOtRate)
                             Text(
                                 text = LaborLawCalculator.formatCurrency(record.otHours * itemRate, isBn),
                                 fontWeight = FontWeight.Bold,

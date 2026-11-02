@@ -228,13 +228,16 @@ fun PieceRateScreen(
                 }
             } else {
                 // Digital Pay Slip View
-                val autoAllowances = if (!profile.isCustomSalary && summary.basicSalary > 0.0) {
-                    LaborLawCalculator.calculateAutoAllowances(summary.basicSalary)
-                } else null
-                val effHouseRent = if (profile.isCustomSalary) profile.houseRent else (autoAllowances?.houseRent ?: profile.houseRent)
-                val effMedical = if (profile.isCustomSalary) profile.medicalAllowance else (autoAllowances?.medicalAllowance ?: profile.medicalAllowance)
-                val effConveyance = if (profile.isCustomSalary) profile.conveyanceAllowance else (autoAllowances?.conveyanceAllowance ?: profile.conveyanceAllowance)
-                val effFood = if (profile.isCustomSalary) profile.foodAllowance else (autoAllowances?.foodAllowance ?: profile.foodAllowance)
+                val effHouseRent = if (summary.houseRent > 0.0) summary.houseRent else if (profile.isCustomSalary) profile.houseRent else (summary.basicSalary * 0.50)
+                val effMedical = if (summary.medicalAllowance > 0.0) summary.medicalAllowance else if (profile.isCustomSalary) profile.medicalAllowance else 750.0
+                val effConveyance = if (summary.conveyanceAllowance > 0.0) summary.conveyanceAllowance else if (profile.isCustomSalary) profile.conveyanceAllowance else (if (summary.basicSalary > 0.0) 450.0 else 0.0)
+                val effFood = if (summary.foodAllowance > 0.0) summary.foodAllowance else if (profile.isCustomSalary) profile.foodAllowance else (if (summary.basicSalary > 0.0) 1250.0 else 0.0)
+
+                val displayCompany = if (summary.companyName.isNotBlank()) summary.companyName else if (profile.companyName.isNotBlank()) profile.companyName else "Garments & Factory Ltd."
+                val displayUserName = if (summary.userName.isNotBlank()) summary.userName else profile.userName
+                val displayDesignation = if (summary.designation.isNotBlank()) summary.designation else profile.designation
+                val displayWorkerId = if (summary.workerId.isNotBlank()) summary.workerId else profile.workerId
+                val displayGrade = if (summary.grade.isNotBlank()) summary.grade else profile.grade
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -272,7 +275,7 @@ fun PieceRateScreen(
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = if (profile.companyName.isNotBlank()) profile.companyName else "Garments & Factory Ltd.",
+                                        text = displayCompany,
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -287,11 +290,11 @@ fun PieceRateScreen(
                                 HorizontalDivider()
 
                                 // Employee Meta
-                                val formattedGrade = formatDisplayGrade(profile.grade, isBn)
+                                val formattedGrade = formatDisplayGrade(displayGrade, isBn)
                                 val designationLine = if (formattedGrade.isNotBlank()) {
-                                    if (isBn) "পদবি: ${profile.designation} ($formattedGrade)" else "Designation: ${profile.designation} ($formattedGrade)"
+                                    if (isBn) "পদবি: $displayDesignation ($formattedGrade)" else "Designation: $displayDesignation ($formattedGrade)"
                                 } else {
-                                    if (isBn) "পদবি: ${profile.designation}" else "Designation: ${profile.designation}"
+                                    if (isBn) "পদবি: $displayDesignation" else "Designation: $displayDesignation"
                                 }
                                 val totalDutyDays = summary.regularDutyDays + summary.dayShiftDays + summary.nightShiftDays
                                 val dutySummaryLine = if (isBn) "মোট ডিউটি দিন: $totalDutyDays দিন | নাইট: ${summary.nightShiftDays} দিন" else "Total Duty: $totalDutyDays days | Night: ${summary.nightShiftDays} days"
@@ -300,14 +303,14 @@ fun PieceRateScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(if (isBn) "কর্মী নাম: ${profile.userName}" else "Worker Name: ${profile.userName}", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(if (isBn) "কর্মী নাম: $displayUserName" else "Worker Name: $displayUserName", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     Text(designationLine, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(if (isBn) "কার্ড / আইডি নং: ${profile.workerId}" else "Card / ID No: ${profile.workerId}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(if (isBn) "কার্ড / আইডি নং: $displayWorkerId" else "Card / ID No: $displayWorkerId", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(dutySummaryLine, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
@@ -401,11 +404,13 @@ fun PieceRateScreen(
                                 SlipRow(otLabel, LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn), isBold = true)
 
                                 if (summary.nightBillTotal > 0) {
-                                    val nightLabel = if (isBn) "নাইট বিল (${summary.nightBillCount}টি @ Tk ${String.format("%.0f", profile.nightBillRate)})" else "Night Bill (${summary.nightBillCount} nights @ Tk ${String.format("%.0f", profile.nightBillRate)})"
+                                    val nightRate = if (summary.effectiveNightRate > 0.0) summary.effectiveNightRate else profile.nightBillRate
+                                    val nightLabel = if (isBn) "নাইট বিল (${summary.nightBillCount}টি @ Tk ${String.format("%.0f", nightRate)})" else "Night Bill (${summary.nightBillCount} nights @ Tk ${String.format("%.0f", nightRate)})"
                                     SlipRow(nightLabel, LaborLawCalculator.formatCurrency(summary.nightBillTotal, isBn))
                                 }
                                 if (summary.tiffinBillTotal > 0) {
-                                    val tiffinLabel = if (isBn) "টিফিন বিল (${summary.tiffinBillCount}টি @ Tk ${String.format("%.0f", profile.tiffinBillRate)})" else "Tiffin Bill (${summary.tiffinBillCount} days @ Tk ${String.format("%.0f", profile.tiffinBillRate)})"
+                                    val tiffinRate = if (summary.effectiveTiffinRate > 0.0) summary.effectiveTiffinRate else profile.tiffinBillRate
+                                    val tiffinLabel = if (isBn) "টিফিন বিল (${summary.tiffinBillCount}টি @ Tk ${String.format("%.0f", tiffinRate)})" else "Tiffin Bill (${summary.tiffinBillCount} days @ Tk ${String.format("%.0f", tiffinRate)})"
                                     SlipRow(tiffinLabel, LaborLawCalculator.formatCurrency(summary.tiffinBillTotal, isBn))
                                 }
                                 SlipRow(
@@ -559,13 +564,13 @@ fun PieceRateScreen(
                         OutlinedButton(
                             onClick = {
                                 val slipText = if (isBn) {
-                                    val gradePart = formatDisplayGrade(profile.grade, true).let { if (it.isNotBlank()) " ($it)" else "" }
+                                    val gradePart = formatDisplayGrade(displayGrade, true).let { if (it.isNotBlank()) " ($it)" else "" }
                                     """
-                                        📄 *${profile.companyName}*
+                                        📄 *$displayCompany*
                                         মাসিক বেতন ও ওভারটাইম স্লিপ ($selectedMonth)
                                         -------------------------------
-                                        👤 শ্রমিকের নাম: ${profile.userName}
-                                        🆔 আইডি: ${profile.workerId} | পদবি: ${profile.designation}$gradePart
+                                        👤 শ্রমিকের নাম: $displayUserName
+                                        🆔 আইডি: $displayWorkerId | পদবি: $displayDesignation$gradePart
                                         -------------------------------
                                         💵 মূল বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
                                         🏠 বাড়িভাড়া: ${LaborLawCalculator.formatCurrency(effHouseRent, isBn)}

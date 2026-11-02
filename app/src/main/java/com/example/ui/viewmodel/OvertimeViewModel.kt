@@ -113,13 +113,25 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
         monthlyPieceRecords,
         monthlyDeductions
     ) { profile, monthSnapshot, otList, pieceList, deductionList ->
-        // Use month snapshot if available (e.g. from that specific month), otherwise fallback to profile
-        val isCustom = monthSnapshot?.isCustomSalary ?: profile.isCustomSalary
-        val baseBasic = if (monthSnapshot != null && monthSnapshot.basicSalary > 0.0) monthSnapshot.basicSalary else profile.basicSalary
-        val otRate = if (monthSnapshot != null && monthSnapshot.hourlyOtRate > 0.0) {
-            monthSnapshot.hourlyOtRate
+        val currentCalendarYm = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
+        val isRunningMonth = _selectedYearMonth.value >= currentCalendarYm
+
+        // For the running month, prioritize active profile so edits are live immediately.
+        // For past months, prioritize saved monthSnapshot to keep historical months locked.
+        val isCustom = if (isRunningMonth) profile.isCustomSalary else (monthSnapshot?.isCustomSalary ?: profile.isCustomSalary)
+        val baseBasic = if (isRunningMonth) {
+            profile.basicSalary
         } else {
+            if (monthSnapshot != null && monthSnapshot.basicSalary > 0.0) monthSnapshot.basicSalary else profile.basicSalary
+        }
+        val otRate = if (isRunningMonth) {
             LaborLawCalculator.getHourlyOtRate(profile)
+        } else {
+            if (monthSnapshot != null && monthSnapshot.hourlyOtRate > 0.0) {
+                monthSnapshot.hourlyOtRate
+            } else {
+                LaborLawCalculator.getHourlyOtRate(profile)
+            }
         }
 
         var totalOtHours = 0.0
@@ -129,15 +141,24 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
 
         for (rec in otList) {
             totalOtHours += rec.otHours
-            // If individual record has a stored snapshot rate, respect it; otherwise use effective monthly rate
-            val itemRate = if (rec.hourlyRateSnapshot > 0.0) rec.hourlyRateSnapshot else otRate
+            // If running month, calculate with the active running otRate.
+            // If past month, respect stored record snapshot if available, otherwise effective past month rate
+            val itemRate = if (isRunningMonth) otRate else (if (rec.hourlyRateSnapshot > 0.0) rec.hourlyRateSnapshot else otRate)
             totalOtAmount += rec.otHours * itemRate
             if (rec.hasNightBill) nightBillCount++
             if (rec.hasTiffinBill) tiffinBillCount++
         }
 
-        val effectiveNightRate = if (monthSnapshot != null && monthSnapshot.nightBillRate > 0.0) monthSnapshot.nightBillRate else profile.nightBillRate
-        val effectiveTiffinRate = if (monthSnapshot != null && monthSnapshot.tiffinBillRate > 0.0) monthSnapshot.tiffinBillRate else profile.tiffinBillRate
+        val effectiveNightRate = if (isRunningMonth) {
+            profile.nightBillRate
+        } else {
+            if (monthSnapshot != null && monthSnapshot.nightBillRate > 0.0) monthSnapshot.nightBillRate else profile.nightBillRate
+        }
+        val effectiveTiffinRate = if (isRunningMonth) {
+            profile.tiffinBillRate
+        } else {
+            if (monthSnapshot != null && monthSnapshot.tiffinBillRate > 0.0) monthSnapshot.tiffinBillRate else profile.tiffinBillRate
+        }
 
         val nightBillTotal = nightBillCount * effectiveNightRate
         val tiffinBillTotal = tiffinBillCount * effectiveTiffinRate
@@ -168,20 +189,35 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
+        val effHouseRent: Double
+        val effMedical: Double
+        val effConveyance: Double
+        val effFood: Double
+
         val allowances = if (baseBasic <= 0.0) {
+            effHouseRent = 0.0
+            effMedical = 0.0
+            effConveyance = 0.0
+            effFood = 0.0
             0.0
         } else if (isCustom) {
-            val house = if (monthSnapshot != null && monthSnapshot.houseRent > 0.0) monthSnapshot.houseRent else profile.houseRent
-            val med = if (monthSnapshot != null && monthSnapshot.medicalAllowance > 0.0) monthSnapshot.medicalAllowance else profile.medicalAllowance
-            val conv = if (monthSnapshot != null && monthSnapshot.conveyanceAllowance > 0.0) monthSnapshot.conveyanceAllowance else profile.conveyanceAllowance
-            val food = if (monthSnapshot != null && monthSnapshot.foodAllowance > 0.0) monthSnapshot.foodAllowance else profile.foodAllowance
-            house + med + conv + food
+            effHouseRent = if (isRunningMonth) profile.houseRent else (if (monthSnapshot != null && monthSnapshot.houseRent > 0.0) monthSnapshot.houseRent else profile.houseRent)
+            effMedical = if (isRunningMonth) profile.medicalAllowance else (if (monthSnapshot != null && monthSnapshot.medicalAllowance > 0.0) monthSnapshot.medicalAllowance else profile.medicalAllowance)
+            effConveyance = if (isRunningMonth) profile.conveyanceAllowance else (if (monthSnapshot != null && monthSnapshot.conveyanceAllowance > 0.0) monthSnapshot.conveyanceAllowance else profile.conveyanceAllowance)
+            effFood = if (isRunningMonth) profile.foodAllowance else (if (monthSnapshot != null && monthSnapshot.foodAllowance > 0.0) monthSnapshot.foodAllowance else profile.foodAllowance)
+            effHouseRent + effMedical + effConveyance + effFood
         } else {
             val auto = LaborLawCalculator.calculateAutoAllowances(baseBasic)
-            auto.houseRent + auto.medicalAllowance + auto.conveyanceAllowance + auto.foodAllowance
+            effHouseRent = auto.houseRent
+            effMedical = auto.medicalAllowance
+            effConveyance = auto.conveyanceAllowance
+            effFood = auto.foodAllowance
+            effHouseRent + effMedical + effConveyance + effFood
         }
 
-        val grossSalary = if (monthSnapshot != null && monthSnapshot.grossSalary > 0.0) {
+        val grossSalary = if (isRunningMonth) {
+            if (baseBasic > 0.0) baseBasic + allowances else 0.0
+        } else if (monthSnapshot != null && monthSnapshot.grossSalary > 0.0) {
             monthSnapshot.grossSalary
         } else if (baseBasic > 0.0) {
             baseBasic + allowances
@@ -189,9 +225,15 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             0.0
         }
 
-        val allowedAbsents = if (monthSnapshot != null) monthSnapshot.maxAbsentForBonus else profile.maxAbsentForBonus
-        val allowedLeaves = if (monthSnapshot != null) monthSnapshot.maxLeaveForBonus else profile.maxLeaveForBonus
-        val bonusRate = if (monthSnapshot != null && monthSnapshot.attendanceBonus > 0.0) monthSnapshot.attendanceBonus else profile.attendanceBonus
+        val effUserName = if (isRunningMonth) profile.userName else (if (monthSnapshot != null && monthSnapshot.userName.isNotBlank()) monthSnapshot.userName else profile.userName)
+        val effCompanyName = if (isRunningMonth) profile.companyName else (if (monthSnapshot != null && monthSnapshot.companyName.isNotBlank()) monthSnapshot.companyName else profile.companyName)
+        val effDesignation = if (isRunningMonth) profile.designation else (if (monthSnapshot != null && monthSnapshot.designation.isNotBlank()) monthSnapshot.designation else profile.designation)
+        val effWorkerId = if (isRunningMonth) profile.workerId else (if (monthSnapshot != null && monthSnapshot.workerId.isNotBlank()) monthSnapshot.workerId else profile.workerId)
+        val effGrade = if (isRunningMonth) profile.grade else (if (monthSnapshot != null && monthSnapshot.grade.isNotBlank()) monthSnapshot.grade else profile.grade)
+
+        val allowedAbsents = if (isRunningMonth) profile.maxAbsentForBonus else (if (monthSnapshot != null) monthSnapshot.maxAbsentForBonus else profile.maxAbsentForBonus)
+        val allowedLeaves = if (isRunningMonth) profile.maxLeaveForBonus else (if (monthSnapshot != null) monthSnapshot.maxLeaveForBonus else profile.maxLeaveForBonus)
+        val bonusRate = if (isRunningMonth) profile.attendanceBonus else (if (monthSnapshot != null && monthSnapshot.attendanceBonus > 0.0) monthSnapshot.attendanceBonus else profile.attendanceBonus)
         val isAbsentPenalty = absentDays > allowedAbsents
         val isLeavePenalty = allowedLeaves != null && leaveDays > allowedLeaves
         val isBonusCancelledDueToAbsent = (baseBasic > 0.0 && bonusRate > 0.0) && isAbsentPenalty
@@ -226,7 +268,7 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             tiffinBillCount = tiffinBillCount,
             tiffinBillTotal = tiffinBillTotal,
             totalPieceAmount = totalPieceAmount,
-            basicSalary = profile.basicSalary,
+            basicSalary = baseBasic,
             allowances = allowances,
             grossSalary = grossSalary,
             attendanceBonus = attendanceBonus,
@@ -247,7 +289,18 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             absentDays = absentDays,
             isBonusCancelledDueToLeave = isBonusCancelledDueToLeave,
             isBonusCancelledDueToAbsent = isBonusCancelledDueToAbsent,
-            maxAllowedLeaveForBonus = allowedLeaves
+            maxAllowedLeaveForBonus = allowedLeaves,
+            effectiveNightRate = effectiveNightRate,
+            effectiveTiffinRate = effectiveTiffinRate,
+            userName = effUserName,
+            companyName = effCompanyName,
+            designation = effDesignation,
+            workerId = effWorkerId,
+            grade = effGrade,
+            houseRent = effHouseRent,
+            medicalAllowance = effMedical,
+            conveyanceAllowance = effConveyance,
+            foodAllowance = effFood
         )
     }.stateIn(
         scope = viewModelScope,
@@ -349,9 +402,19 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
                 maxLeaveForBonus = updated.maxLeaveForBonus,
                 nightBillRate = updated.nightBillRate,
                 tiffinBillRate = updated.tiffinBillRate,
-                isCustomSalary = updated.isCustomSalary
+                isCustomSalary = updated.isCustomSalary,
+                userName = updated.userName,
+                companyName = updated.companyName,
+                designation = updated.designation,
+                workerId = updated.workerId,
+                grade = updated.grade
             )
             repository.saveMonthlySalarySettings(snapshot)
+            // Synchronize running month records with the new rate and amount in Room and Firestore
+            repository.updateRunningMonthOvertimeRates(currentCalendarYm, otRate)
+            if (ym > currentCalendarYm) {
+                repository.updateRunningMonthOvertimeRates(ym, otRate)
+            }
         }
     }
 
@@ -367,11 +430,16 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
     ) {
         viewModelScope.launch {
             val ym = if (date.length >= 7) date.substring(0, 7) else _selectedYearMonth.value
+            val currentCalendarYm = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
+            val isRunningMonth = ym >= currentCalendarYm
             val profile = userProfile.value
             
-            // If month already has a saved salary snapshot, prioritize that month's rate; otherwise use current profile rate
+            // For running month, always use the current active profile rate.
+            // For past month, prioritize that past month's saved snapshot rate.
             val existingMonthSettings = repository.getMonthlySalarySettingsOnce(ym)
-            val effectiveRate = if (existingMonthSettings != null && existingMonthSettings.hourlyOtRate > 0.0) {
+            val effectiveRate = if (isRunningMonth) {
+                LaborLawCalculator.getHourlyOtRate(profile)
+            } else if (existingMonthSettings != null && existingMonthSettings.hourlyOtRate > 0.0) {
                 existingMonthSettings.hourlyOtRate
             } else {
                 LaborLawCalculator.getHourlyOtRate(profile)
@@ -400,9 +468,23 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
                     maxLeaveForBonus = profile.maxLeaveForBonus,
                     nightBillRate = profile.nightBillRate,
                     tiffinBillRate = profile.tiffinBillRate,
-                    isCustomSalary = profile.isCustomSalary
+                    isCustomSalary = profile.isCustomSalary,
+                    userName = profile.userName,
+                    companyName = profile.companyName,
+                    designation = profile.designation,
+                    workerId = profile.workerId,
+                    grade = profile.grade
                 )
                 repository.saveMonthlySalarySettings(snapshot)
+            } else if (existingMonthSettings != null && existingMonthSettings.userName.isBlank() && profile.userName.isNotBlank()) {
+                val backfilled = existingMonthSettings.copy(
+                    userName = profile.userName,
+                    companyName = profile.companyName,
+                    designation = profile.designation,
+                    workerId = profile.workerId,
+                    grade = profile.grade
+                )
+                repository.saveMonthlySalarySettings(backfilled)
             }
 
             val record = OvertimeRecord(
@@ -613,5 +695,16 @@ data class MonthlySummaryState(
     val absentDays: Int = 0,
     val isBonusCancelledDueToLeave: Boolean = false,
     val isBonusCancelledDueToAbsent: Boolean = false,
-    val maxAllowedLeaveForBonus: Int? = null
+    val maxAllowedLeaveForBonus: Int? = null,
+    val effectiveNightRate: Double = 0.0,
+    val effectiveTiffinRate: Double = 0.0,
+    val userName: String = "",
+    val companyName: String = "",
+    val designation: String = "",
+    val workerId: String = "",
+    val grade: String = "",
+    val houseRent: Double = 0.0,
+    val medicalAllowance: Double = 0.0,
+    val conveyanceAllowance: Double = 0.0,
+    val foodAllowance: Double = 0.0
 )

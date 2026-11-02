@@ -17,6 +17,9 @@ interface OvertimeDao {
     @Query("SELECT * FROM overtime_records WHERE yearMonth = :yearMonth AND id IN (SELECT MAX(id) FROM overtime_records GROUP BY date) ORDER BY date DESC, id DESC")
     fun getRecordsByMonth(yearMonth: String): Flow<List<OvertimeRecord>>
 
+    @Query("SELECT * FROM overtime_records WHERE yearMonth = :yearMonth AND id IN (SELECT MAX(id) FROM overtime_records GROUP BY date) ORDER BY date DESC, id DESC")
+    suspend fun getRecordsByMonthOnce(yearMonth: String): List<OvertimeRecord>
+
     @Query("SELECT * FROM overtime_records WHERE date = :date ORDER BY id DESC LIMIT 1")
     suspend fun getRecordByDate(date: String): OvertimeRecord?
 

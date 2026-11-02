@@ -42,8 +42,16 @@ fun OtListScreen(
     val isBn = lang == "bn"
     var recordToDelete by remember { mutableStateOf<Long?>(null) }
 
+    val currentCalendarYm = remember {
+        java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date())
+    }
+    val isRunningMonth = selectedMonth >= currentCalendarYm
+
     val totalHours = records.sumOf { it.otHours }
-    val totalAmount = totalHours * hourlyRate
+    val totalAmount = records.sumOf { record ->
+        val itemRate = if (isRunningMonth) hourlyRate else (if (record.hourlyRateSnapshot > 0.0) record.hourlyRateSnapshot else hourlyRate)
+        record.otHours * itemRate
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -244,7 +252,7 @@ fun OtListScreen(
                                         color = MaterialTheme.colorScheme.error
                                     )
                                 } else {
-                                    val itemRate = if (record.hourlyRateSnapshot > 0.0) record.hourlyRateSnapshot else hourlyRate
+                                    val itemRate = if (isRunningMonth) hourlyRate else (if (record.hourlyRateSnapshot > 0.0) record.hourlyRateSnapshot else hourlyRate)
                                     Text(
                                         text = LaborLawCalculator.formatCurrency(record.otHours * itemRate, isBn),
                                         fontWeight = FontWeight.Bold,

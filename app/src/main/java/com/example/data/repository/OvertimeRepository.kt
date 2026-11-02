@@ -135,6 +135,28 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         return overtimeDao.getRecordsByMonth(yearMonth)
     }
 
+    suspend fun getOvertimeRecordsOnce(yearMonth: String): List<OvertimeRecord> {
+        return overtimeDao.getRecordsByMonthOnce(yearMonth)
+    }
+
+    suspend fun updateRunningMonthOvertimeRates(yearMonth: String, newRate: Double) {
+        try {
+            val records = overtimeDao.getRecordsByMonthOnce(yearMonth)
+            for (rec in records) {
+                val updated = rec.copy(
+                    hourlyRateSnapshot = newRate,
+                    calculatedAmount = rec.otHours * newRate
+                )
+                overtimeDao.insertRecord(updated)
+                syncScope.launch {
+                    autoSyncOvertimeToCloud(updated)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("OvertimeRepository", "Error updating running month overtime rates: ${e.message}")
+        }
+    }
+
     fun getAllOvertimeRecords(): Flow<List<OvertimeRecord>> {
         return overtimeDao.getAllRecords()
     }
@@ -954,6 +976,11 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             "nightBillRate" to settings.nightBillRate,
             "tiffinBillRate" to settings.tiffinBillRate,
             "isCustomSalary" to settings.isCustomSalary,
+            "userName" to settings.userName,
+            "companyName" to settings.companyName,
+            "designation" to settings.designation,
+            "workerId" to settings.workerId,
+            "grade" to settings.grade,
             "updatedAt" to settings.updatedAt
         )
     }
@@ -978,6 +1005,11 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             nightBillRate = getDoubleFromField(map["nightBillRate"]),
             tiffinBillRate = getDoubleFromField(map["tiffinBillRate"]),
             isCustomSalary = getBooleanFromField(map["isCustomSalary"]),
+            userName = (map["userName"] as? String)?.trim() ?: "",
+            companyName = (map["companyName"] as? String)?.trim() ?: "",
+            designation = (map["designation"] as? String)?.trim() ?: "",
+            workerId = (map["workerId"] as? String)?.trim() ?: "",
+            grade = (map["grade"] as? String)?.trim() ?: "",
             updatedAt = (map["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
         )
     }
