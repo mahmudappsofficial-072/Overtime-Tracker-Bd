@@ -109,7 +109,7 @@ fun ProfileScreen(
         mutableStateOf(if (profile.tiffinBillRate == 0.0) "0" else profile.tiffinBillRate.toInt().toString())
     }
     var customOtRateText by remember(profile) {
-        mutableStateOf(if (profile.customOtRate == 0.0) "0" else profile.customOtRate.toInt().toString())
+        mutableStateOf(if (profile.customOtRate <= 0.0) "" else profile.customOtRate.toInt().toString())
     }
 
     var whatsappNumber by remember(profile) { mutableStateOf(profile.supportWhatsapp) }
@@ -132,7 +132,7 @@ fun ProfileScreen(
             maxLeaveForBonusText = ""
             nightBillRateText = "0"
             tiffinBillRateText = "0"
-            customOtRateText = "0"
+            customOtRateText = ""
             whatsappNumber = ""
             isCustomSalary = false
         }
@@ -148,10 +148,9 @@ fun ProfileScreen(
         LaborLawCalculator.calculateFromGrossSalary(currentGross)
     }
 
-    val effectiveHourlyOtRate = if (isCustomSalary) {
+    val effectiveHourlyOtRate: Double? = if (isCustomSalary) {
         val customRate = customOtRateText.toDoubleOrNull() ?: 0.0
-        val customBasic = basicSalaryText.toDoubleOrNull() ?: 0.0
-        if (customRate > 0.0) customRate else if (customBasic > 0.0) (customBasic / 104.0) else 0.0
+        if (customRate > 0.0) customRate else null
     } else {
         autoResult.otHourlyRate
     }
@@ -548,9 +547,9 @@ fun ProfileScreen(
                                 .weight(1f)
                                 .clickable {
                                     isCustomSalary = true
-                                    // ensure basic and allowances carry over
+                                    // carry over gross as total salary in custom mode if not already set
                                     if (basicSalaryText.isBlank() || basicSalaryText == "0") {
-                                        basicSalaryText = autoResult.basicSalary.toInt().toString()
+                                        basicSalaryText = if (currentGross > 0.0) grossSalaryText else autoResult.grossSalary.toInt().toString()
                                     }
                                 }
                                 .testTag("mode_custom_tab")
@@ -594,9 +593,9 @@ fun ProfileScreen(
                         ) {
                             Text(
                                 text = if (isBn) {
-                                    "⚙️ কাস্টম মোড: আপনার ফ্যাক্টরির নিয়ম অনুযায়ী মূল বেতন, যেকোনো ভাতা বা প্রতি ঘণ্টার ওটি রেট নিজের মতো বসিয়ে নিতে পারবেন।"
+                                    "⚙️ কাস্টম মোড: আপনার কারখানার নিয়ম অনুযায়ী মোট বেতন, নাইট/টিফিন বিল, বোনাস ও প্রতি ঘণ্টার ওটি রেট নিজের মতো বসিয়ে নিতে পারবেন।"
                                 } else {
-                                    "⚙️ Custom mode: Configure basic salary, any allowances, or hourly OT rate according to your company rules."
+                                    "⚙️ Custom mode: Configure total salary, night/tiffin bill, bonus and hourly OT rate according to your company rules."
                                 },
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp,
@@ -618,88 +617,80 @@ fun ProfileScreen(
                             leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                     } else {
-                        // In Custom mode: User can edit Basic Salary directly here or in breakdown
+                        // In Custom mode: User enters Total Salary
                         OutlinedTextField(
                             value = basicSalaryText,
                             onValueChange = { basicSalaryText = it },
-                            label = { Text(if (isBn) "মূল বেতন (Basic Salary ৳)" else "Basic Salary (৳)") },
+                            label = { Text(if (isBn) "মোট বেতন (৳)" else "Total Salary (৳)") },
                             modifier = Modifier.fillMaxWidth().testTag("basic_salary_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
-                            leadingIcon = { Icon(Icons.Default.MonetizationOn, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                     }
 
-                    // Allowances Section
-                    Text(
-                        text = if (!isCustomSalary) {
-                            if (isBn) "সরকারি নিয়মে স্বয়ংক্রিয় হিসাব (লকড):" else "Automatic Breakdown (Locked):"
-                        } else {
-                            if (isBn) "ভাতাসমূহ (Allowances):" else "Allowances:"
-                        },
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
-                    )
-
-                    // Basic Salary (Locked in Auto mode, editable in Custom mode)
+                    // Allowances Section (Only shown in Automatic mode as locked legal breakdown)
                     if (!isCustomSalary) {
+                        Text(
+                            text = if (isBn) "সরকারি নিয়মে স্বয়ংক্রিয় হিসাব (লকড):" else "Automatic Breakdown (Locked):",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        )
+
+                        // Basic Salary (Locked in Auto mode)
                         OutlinedTextField(
                             value = autoResult.basicSalary.toInt().toString(),
                             onValueChange = {},
-                            label = { Text(if (isBn) "মূল বেতন (Basic Salary - লকড)" else "Basic Salary (Locked)") },
+                            label = { Text(if (isBn) "মূল বেতন (লকড)" else "Basic Salary (Locked)") },
                             enabled = false,
                             modifier = Modifier.fillMaxWidth().testTag("locked_basic_salary_input"),
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.outline) },
                             singleLine = true
                         )
-                    }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = if (isCustomSalary) houseRentText else autoResult.houseRent.toInt().toString(),
-                            onValueChange = { if (isCustomSalary) houseRentText = it },
-                            label = { Text(if (isBn) "বাড়িভাড়া (House Rent)" else "House Rent") },
-                            enabled = isCustomSalary,
-                            modifier = Modifier.weight(1f).testTag("house_rent_input"),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = if (isCustomSalary) medicalText else "750",
-                            onValueChange = { if (isCustomSalary) medicalText = it },
-                            label = { Text(if (isBn) "চিকিৎসা ভাতা (Fixed ৳ ৭৫০)" else "Medical Allowance (Fixed ৳ 750)") },
-                            enabled = isCustomSalary,
-                            modifier = Modifier.weight(1f).testTag("medical_input"),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true
-                        )
-                    }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = autoResult.houseRent.toInt().toString(),
+                                onValueChange = {},
+                                label = { Text(if (isBn) "বাড়িভাড়া" else "House Rent") },
+                                enabled = false,
+                                modifier = Modifier.weight(1f).testTag("house_rent_input"),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = "750",
+                                onValueChange = {},
+                                label = { Text(if (isBn) "চিকিৎসা ভাতা (স্থির ৭৫০)" else "Medical Allowance (Fixed 750)") },
+                                enabled = false,
+                                modifier = Modifier.weight(1f).testTag("medical_input"),
+                                singleLine = true
+                            )
+                        }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = if (isCustomSalary) conveyanceText else autoResult.conveyanceAllowance.toInt().toString(),
-                            onValueChange = { if (isCustomSalary) conveyanceText = it },
-                            label = { Text(if (isBn) "যাতায়াত ভাতা" else "Conveyance Allowance") },
-                            enabled = isCustomSalary,
-                            modifier = Modifier.weight(1f).testTag("conveyance_input"),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = if (isCustomSalary) foodText else autoResult.foodAllowance.toInt().toString(),
-                            onValueChange = { if (isCustomSalary) foodText = it },
-                            label = { Text(if (isBn) "খাদ্য ভাতা" else "Food Allowance") },
-                            enabled = isCustomSalary,
-                            modifier = Modifier.weight(1f).testTag("food_input"),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = autoResult.conveyanceAllowance.toInt().toString(),
+                                onValueChange = {},
+                                label = { Text(if (isBn) "যাতায়াত ভাতা" else "Conveyance Allowance") },
+                                enabled = false,
+                                modifier = Modifier.weight(1f).testTag("conveyance_input"),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = autoResult.foodAllowance.toInt().toString(),
+                                onValueChange = {},
+                                label = { Text(if (isBn) "খাদ্য ভাতা" else "Food Allowance") },
+                                enabled = false,
+                                modifier = Modifier.weight(1f).testTag("food_input"),
+                                singleLine = true
+                            )
+                        }
                     }
 
                     // Night & Tiffin Rates & Attendance Bonus
@@ -770,7 +761,12 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth().testTag("custom_ot_rate_input"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
-                            supportingText = { Text(if (isBn) "০ রাখলে স্বয়ংক্রিয় মূল বেতন/১০৪ রেট প্রযোজ্য হবে" else "Set 0 to use automatic Basic/104 formula") }
+                            supportingText = {
+                                Text(
+                                    if (isBn) "প্রতি ঘণ্টার ওটি রেট লিখুন (ইনপুট না দিলে কার্যকর রেট খালি থাকবে)"
+                                    else "Enter hourly OT rate (effective rate remains blank until entered)"
+                                )
+                            }
                         )
                     }
 
@@ -794,7 +790,11 @@ fun ProfileScreen(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
-                                    text = LaborLawCalculator.formatCurrency(effectiveHourlyOtRate, isBn) + (if (isBn) " / ঘণ্টা" else " / hr"),
+                                    text = if (effectiveHourlyOtRate != null && effectiveHourlyOtRate > 0.0) {
+                                        LaborLawCalculator.formatCurrency(effectiveHourlyOtRate, isBn) + (if (isBn) " / ঘণ্টা" else " / hr")
+                                    } else {
+                                        "—"
+                                    },
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -802,13 +802,12 @@ fun ProfileScreen(
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = if (isBn) "মোট গ্রস সাধারণ বেতন:" else "Total Gross Regular Salary:",
+                                    text = if (isBn) "মোট সাধারণ বেতন:" else "Total Regular Salary:",
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 val calculatedGross = if (isCustomSalary) {
-                                    val customBasic = basicSalaryText.toDoubleOrNull() ?: 0.0
-                                    customBasic + (houseRentText.toDoubleOrNull() ?: 0.0) + (medicalText.toDoubleOrNull() ?: 0.0) + (conveyanceText.toDoubleOrNull() ?: 0.0) + (foodText.toDoubleOrNull() ?: 0.0)
+                                    basicSalaryText.toDoubleOrNull() ?: 0.0
                                 } else {
                                     autoResult.grossSalary
                                 }
@@ -834,10 +833,10 @@ fun ProfileScreen(
                     } else {
                         autoResult.basicSalary
                     }
-                    val house = if (isCustomSalary) (houseRentText.toDoubleOrNull() ?: 0.0) else autoResult.houseRent
-                    val medical = if (isCustomSalary) (medicalText.toDoubleOrNull() ?: 750.0) else 750.0
-                    val conveyance = if (isCustomSalary) (conveyanceText.toDoubleOrNull() ?: 0.0) else autoResult.conveyanceAllowance
-                    val food = if (isCustomSalary) (foodText.toDoubleOrNull() ?: 0.0) else autoResult.foodAllowance
+                    val house = if (isCustomSalary) 0.0 else autoResult.houseRent
+                    val medical = if (isCustomSalary) 0.0 else 750.0
+                    val conveyance = if (isCustomSalary) 0.0 else autoResult.conveyanceAllowance
+                    val food = if (isCustomSalary) 0.0 else autoResult.foodAllowance
                     val attendance = attendanceBonusText.toDoubleOrNull() ?: 0.0
                     val maxAbsentThreshold = (maxAbsentForBonusText.toIntOrNull() ?: 0).coerceAtLeast(0)
                     val night = nightBillRateText.toDoubleOrNull() ?: 0.0
