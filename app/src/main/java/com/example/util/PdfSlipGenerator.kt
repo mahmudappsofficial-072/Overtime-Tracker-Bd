@@ -136,7 +136,12 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(5, 150, 105)
         paint.textSize = 13f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText(if (isBn) "মূল বেতন ও নির্ধারিত ভাতাসমূহ:" else "Basic Salary & Fixed Allowances:", 44f, y, paint)
+        val sectionTitle = if (profile.isCustomSalary) {
+            if (isBn) "মোট বেতন ও ভাতাসমূহ:" else "Total Salary & Allowances:"
+        } else {
+            if (isBn) "মূল বেতন ও নির্ধারিত ভাতাসমূহ:" else "Basic Salary & Fixed Allowances:"
+        }
+        canvas.drawText(sectionTitle, 44f, y, paint)
         y += 20f
 
         fun drawPdfRow(label: String, amount: Double, isBold: Boolean = false, isDeduction: Boolean = false) {
@@ -151,20 +156,24 @@ object PdfSlipGenerator {
             y += 18f
         }
 
-        val autoAllowances = if (!profile.isCustomSalary && summary.basicSalary > 0.0) {
-            LaborLawCalculator.calculateAutoAllowances(summary.basicSalary)
-        } else null
+        if (profile.isCustomSalary) {
+            drawPdfRow(if (isBn) "মোট বেতন" else "Total Salary", summary.basicSalary)
+        } else {
+            val autoAllowances = if (summary.basicSalary > 0.0) {
+                LaborLawCalculator.calculateAutoAllowances(summary.basicSalary)
+            } else null
 
-        val effHouseRent = if (summary.houseRent > 0.0) summary.houseRent else if (profile.isCustomSalary) profile.houseRent else (autoAllowances?.houseRent ?: profile.houseRent)
-        val effMedical = if (summary.medicalAllowance > 0.0) summary.medicalAllowance else if (profile.isCustomSalary) profile.medicalAllowance else (autoAllowances?.medicalAllowance ?: profile.medicalAllowance)
-        val effConveyance = if (summary.conveyanceAllowance > 0.0) summary.conveyanceAllowance else if (profile.isCustomSalary) profile.conveyanceAllowance else (autoAllowances?.conveyanceAllowance ?: profile.conveyanceAllowance)
-        val effFood = if (summary.foodAllowance > 0.0) summary.foodAllowance else if (profile.isCustomSalary) profile.foodAllowance else (autoAllowances?.foodAllowance ?: profile.foodAllowance)
+            val effHouseRent = if (summary.houseRent > 0.0) summary.houseRent else (autoAllowances?.houseRent ?: profile.houseRent)
+            val effMedical = if (summary.medicalAllowance > 0.0) summary.medicalAllowance else (autoAllowances?.medicalAllowance ?: profile.medicalAllowance)
+            val effConveyance = if (summary.conveyanceAllowance > 0.0) summary.conveyanceAllowance else (autoAllowances?.conveyanceAllowance ?: profile.conveyanceAllowance)
+            val effFood = if (summary.foodAllowance > 0.0) summary.foodAllowance else (autoAllowances?.foodAllowance ?: profile.foodAllowance)
 
-        drawPdfRow(if (isBn) "মূল বেতন" else "Basic Salary", summary.basicSalary)
-        drawPdfRow(if (isBn) "বাড়িভাড়া ভাতা (৫০%)" else "House Rent Allowance (50%)", effHouseRent)
-        drawPdfRow(if (isBn) "চিকিৎসা ভাতা" else "Medical Allowance", effMedical)
-        drawPdfRow(if (isBn) "যাতায়াত ভাতা" else "Conveyance Allowance", effConveyance)
-        drawPdfRow(if (isBn) "খাদ্য ভাতা" else "Food Allowance", effFood)
+            drawPdfRow(if (isBn) "মূল বেতন" else "Basic Salary", summary.basicSalary)
+            drawPdfRow(if (isBn) "বাড়িভাড়া ভাতা (৫০%)" else "House Rent Allowance (50%)", effHouseRent)
+            drawPdfRow(if (isBn) "চিকিৎসা ভাতা" else "Medical Allowance", effMedical)
+            drawPdfRow(if (isBn) "যাতায়াত ভাতা" else "Conveyance Allowance", effConveyance)
+            drawPdfRow(if (isBn) "খাদ্য ভাতা" else "Food Allowance", effFood)
+        }
         val attendanceLabel = if (summary.attendanceBonus > 0) {
             if (summary.absentDays > 0) {
                 if (isBn) "হাজিরা বোনাস (${summary.absentDays} দিন অনুপস্থিতি অনুমোদিত)" else "Attendance Bonus (${summary.absentDays} absent days allowed)"

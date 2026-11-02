@@ -413,6 +413,15 @@ fun PieceRateScreen(
                             onClick = {
                                 val slipText = if (isBn) {
                                     val gradePart = formatDisplayGrade(displayGrade, true).let { if (it.isNotBlank()) " ($it)" else "" }
+                                    val salarySection = if (profile.isCustomSalary) {
+                                        "💵 মোট বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}"
+                                    } else {
+                                        """
+                                        💵 মূল বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
+                                        🏠 বাড়িভাড়া: ${LaborLawCalculator.formatCurrency(effHouseRent, isBn)}
+                                        🩺 চিকিৎসা ও খাদ্য ভাতা: ${LaborLawCalculator.formatCurrency(effMedical + effFood, isBn)}
+                                        """.trimIndent()
+                                    }
                                     """
                                         📄 *$displayCompany*
                                         মাসিক বেতন ও ওভারটাইম স্লিপ ($selectedMonth)
@@ -420,9 +429,7 @@ fun PieceRateScreen(
                                         👤 শ্রমিকের নাম: $displayUserName
                                         🆔 আইডি: $displayWorkerId | পদবি: $displayDesignation$gradePart
                                         -------------------------------
-                                        💵 মূল বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
-                                        🏠 বাড়িভাড়া: ${LaborLawCalculator.formatCurrency(effHouseRent, isBn)}
-                                        🩺 চিকিৎসা ও খাদ্য ভাতা: ${LaborLawCalculator.formatCurrency(effMedical + effFood, isBn)}
+                                        $salarySection
                                         ⏱️ ওভারটাইম (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} ঘ): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}
                                         🧵 পিস রেট আয়: ${LaborLawCalculator.formatCurrency(summary.totalPieceAmount, isBn)}
                                         🌙 নাইট/টিফিন বিল: ${LaborLawCalculator.formatCurrency(summary.nightBillTotal + summary.tiffinBillTotal, isBn)}
@@ -433,6 +440,15 @@ fun PieceRateScreen(
                                     """.trimIndent()
                                 } else {
                                     val gradePart = formatDisplayGrade(profile.grade, false).let { if (it.isNotBlank()) " ($it)" else "" }
+                                    val salarySection = if (profile.isCustomSalary) {
+                                        "💵 Total Salary: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}"
+                                    } else {
+                                        """
+                                        💵 Basic Salary: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
+                                        🏠 House Rent: ${LaborLawCalculator.formatCurrency(effHouseRent, isBn)}
+                                        🩺 Medical & Food: ${LaborLawCalculator.formatCurrency(effMedical + effFood, isBn)}
+                                        """.trimIndent()
+                                    }
                                     """
                                         📄 *${profile.companyName}*
                                         Monthly Salary & Overtime Slip ($selectedMonth)
@@ -440,9 +456,7 @@ fun PieceRateScreen(
                                         👤 Worker: ${profile.userName}
                                         🆔 ID: ${profile.workerId} | Designation: ${profile.designation}$gradePart
                                         -------------------------------
-                                        💵 Basic Salary: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}
-                                        🏠 House Rent: ${LaborLawCalculator.formatCurrency(effHouseRent, isBn)}
-                                        🩺 Medical & Food: ${LaborLawCalculator.formatCurrency(effMedical + effFood, isBn)}
+                                        $salarySection
                                         ⏱️ Overtime (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} hrs): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}
                                         🧵 Piece Rate Earnings: ${LaborLawCalculator.formatCurrency(summary.totalPieceAmount, isBn)}
                                         🌙 Night/Tiffin Bill: ${LaborLawCalculator.formatCurrency(summary.nightBillTotal + summary.tiffinBillTotal, isBn)}

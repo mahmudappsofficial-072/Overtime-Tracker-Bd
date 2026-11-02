@@ -14,8 +14,8 @@ object LaborLawCalculator {
      * Overtime hourly rate = (Basic / 208) * 2 = Basic / 104
      */
     fun getHourlyOtRate(profile: UserProfile): Double {
-        return if (profile.isCustomSalary && profile.customOtRate > 0.0) {
-            profile.customOtRate
+        return if (profile.isCustomSalary) {
+            if (profile.customOtRate > 0.0) profile.customOtRate else 0.0
         } else {
             (profile.basicSalary / STANDARD_MONTHLY_HOURS) * 2.0
         }
