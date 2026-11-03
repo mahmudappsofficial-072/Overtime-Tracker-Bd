@@ -51,7 +51,7 @@ fun PieceRateScreen(
 
     Scaffold(
         floatingActionButton = {
-            if (selectedTab == 0) {
+            if (selectedTab == 0 && !summary.isLocked) {
                 FloatingActionButton(
                     onClick = onAddPieceClick,
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -98,6 +98,40 @@ fun PieceRateScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Lock Status Banner for Past Months
+                    if (summary.isLocked) {
+                        item {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f)
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (isBn) "বিগত মাসের পিস রেট হিসাব সংরক্ষিত (লকড)" else "Past month piece rate records locked",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Summary Card
                     item {
                         Card(
@@ -212,13 +246,40 @@ fun PieceRateScreen(
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.primary
                                         )
-                                        IconButton(onClick = { itemToDelete = item }) {
-                                            Icon(
-                                                Icons.Default.DeleteOutline,
-                                                contentDescription = "Delete",
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(20.dp)
-                                            )
+                                        if (!summary.isLocked) {
+                                            IconButton(onClick = { itemToDelete = item }) {
+                                                Icon(
+                                                    Icons.Default.DeleteOutline,
+                                                    contentDescription = "Delete",
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        } else {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.surfaceVariant
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Lock,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(2.dp))
+                                                    Text(
+                                                        text = if (isBn) "লকড" else "Locked",
+                                                        fontSize = 10.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -228,10 +289,10 @@ fun PieceRateScreen(
                 }
             } else {
                 // Digital Pay Slip View
-                val effHouseRent = if (summary.houseRent > 0.0) summary.houseRent else if (profile.isCustomSalary) profile.houseRent else (summary.basicSalary * 0.50)
-                val effMedical = if (summary.medicalAllowance > 0.0) summary.medicalAllowance else if (profile.isCustomSalary) profile.medicalAllowance else 750.0
-                val effConveyance = if (summary.conveyanceAllowance > 0.0) summary.conveyanceAllowance else if (profile.isCustomSalary) profile.conveyanceAllowance else (if (summary.basicSalary > 0.0) 450.0 else 0.0)
-                val effFood = if (summary.foodAllowance > 0.0) summary.foodAllowance else if (profile.isCustomSalary) profile.foodAllowance else (if (summary.basicSalary > 0.0) 1250.0 else 0.0)
+                val effHouseRent = if (summary.houseRent > 0.0) summary.houseRent else if (summary.isCustomSalary) profile.houseRent else (summary.basicSalary * 0.50)
+                val effMedical = if (summary.medicalAllowance > 0.0) summary.medicalAllowance else if (summary.isCustomSalary) profile.medicalAllowance else 750.0
+                val effConveyance = if (summary.conveyanceAllowance > 0.0) summary.conveyanceAllowance else if (summary.isCustomSalary) profile.conveyanceAllowance else (if (summary.basicSalary > 0.0) 450.0 else 0.0)
+                val effFood = if (summary.foodAllowance > 0.0) summary.foodAllowance else if (summary.isCustomSalary) profile.foodAllowance else (if (summary.basicSalary > 0.0) 1250.0 else 0.0)
 
                 val displayCompany = if (summary.companyName.isNotBlank()) summary.companyName else if (profile.companyName.isNotBlank()) profile.companyName else "Garments & Factory Ltd."
                 val displayUserName = if (summary.userName.isNotBlank()) summary.userName else profile.userName
@@ -244,6 +305,35 @@ fun PieceRateScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    if (summary.isLocked) {
+                        item {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.75f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (isBn) "এই মাসের চূড়ান্ত স্ন্যাপশট সংরক্ষিত ও অপরিবর্তনীয় (লকড)" else "Final month snapshot locked and immutable",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     item {
                         Card(
                             shape = RoundedCornerShape(16.dp),
@@ -413,7 +503,7 @@ fun PieceRateScreen(
                             onClick = {
                                 val slipText = if (isBn) {
                                     val gradePart = formatDisplayGrade(displayGrade, true).let { if (it.isNotBlank()) " ($it)" else "" }
-                                    val salarySection = if (profile.isCustomSalary) {
+                                    val salarySection = if (summary.isCustomSalary) {
                                         "💵 মোট বেতন: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}"
                                     } else {
                                         """
@@ -439,8 +529,8 @@ fun PieceRateScreen(
                                         _ওভারটাইম ট্র্যাকার বিডি অ্যাপ দ্বারা প্রস্তুতকৃত_
                                     """.trimIndent()
                                 } else {
-                                    val gradePart = formatDisplayGrade(profile.grade, false).let { if (it.isNotBlank()) " ($it)" else "" }
-                                    val salarySection = if (profile.isCustomSalary) {
+                                    val gradePart = formatDisplayGrade(displayGrade, false).let { if (it.isNotBlank()) " ($it)" else "" }
+                                    val salarySection = if (summary.isCustomSalary) {
                                         "💵 Total Salary: ${LaborLawCalculator.formatCurrency(summary.basicSalary, isBn)}"
                                     } else {
                                         """
@@ -450,11 +540,11 @@ fun PieceRateScreen(
                                         """.trimIndent()
                                     }
                                     """
-                                        📄 *${profile.companyName}*
+                                        📄 *$displayCompany*
                                         Monthly Salary & Overtime Slip ($selectedMonth)
                                         -------------------------------
-                                        👤 Worker: ${profile.userName}
-                                        🆔 ID: ${profile.workerId} | Designation: ${profile.designation}$gradePart
+                                        👤 Worker: $displayUserName
+                                        🆔 ID: $displayWorkerId | Designation: $displayDesignation$gradePart
                                         -------------------------------
                                         $salarySection
                                         ⏱️ Overtime (${LaborLawCalculator.formatNumber(summary.totalOtHours, isBn)} hrs): ${LaborLawCalculator.formatCurrency(summary.totalOtAmount, isBn)}

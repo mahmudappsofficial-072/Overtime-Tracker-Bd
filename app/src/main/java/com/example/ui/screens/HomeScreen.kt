@@ -179,6 +179,42 @@ fun HomeScreen(
             }
         }
 
+        // Lock Status Banner for Past Months
+        if (summary.isLocked) {
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("home_locked_banner")
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isBn) "বিগত মাসের হিসাব ও স্ন্যাপশট সংরক্ষিত (লকড)" else "Past month records & snapshot locked",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+            }
+        }
+
         // Hero Card: Total Income & Overtime Highlights
         item {
             Card(
@@ -215,7 +251,7 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = if (profile.isCustomSalary) {
+                                    text = if (summary.isCustomSalary) {
                                         if (isBn) "কাস্টম নিয়ম" else "Custom Rules"
                                     } else {
                                         if (isBn) "শ্রম আইন ২০০৬" else "Labor Law 2006"
@@ -327,12 +363,38 @@ fun HomeScreen(
                             )
                         }
 
-                        TextButton(
-                            onClick = onEditTargetClick,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            modifier = Modifier.testTag("edit_target_button")
-                        ) {
-                            Text(if (isBn) "টার্গেট পরিবর্তন" else "Change Target", fontSize = 12.sp)
+                        if (!summary.isLocked) {
+                            TextButton(
+                                onClick = onEditTargetClick,
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("edit_target_button")
+                            ) {
+                                Text(if (isBn) "টার্গেট পরিবর্তন" else "Change Target", fontSize = 12.sp)
+                            }
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (isBn) "লকড" else "Locked",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
                         }
                     }
 

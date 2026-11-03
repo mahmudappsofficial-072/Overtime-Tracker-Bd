@@ -25,5 +25,9 @@ data class MonthlySalarySettings(
     val designation: String = "",
     val workerId: String = "",
     val grade: String = "",
+    val customOtRate: Double = 0.0,
+    val monthlyOtTargetHours: Double = 0.0,
+    val isLocked: Boolean = false,
+    val lockedAt: Long = 0L,
     val updatedAt: Long = System.currentTimeMillis()
 )

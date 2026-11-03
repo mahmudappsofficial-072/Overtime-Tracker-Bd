@@ -136,7 +136,7 @@ object PdfSlipGenerator {
         paint.color = Color.rgb(5, 150, 105)
         paint.textSize = 13f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        val sectionTitle = if (profile.isCustomSalary) {
+        val sectionTitle = if (summary.isCustomSalary) {
             if (isBn) "মোট বেতন ও ভাতাসমূহ:" else "Total Salary & Allowances:"
         } else {
             if (isBn) "মূল বেতন ও নির্ধারিত ভাতাসমূহ:" else "Basic Salary & Fixed Allowances:"
@@ -156,7 +156,7 @@ object PdfSlipGenerator {
             y += 18f
         }
 
-        if (profile.isCustomSalary) {
+        if (summary.isCustomSalary) {
             drawPdfRow(if (isBn) "মোট বেতন" else "Total Salary", summary.basicSalary)
         } else {
             val autoAllowances = if (summary.basicSalary > 0.0) {

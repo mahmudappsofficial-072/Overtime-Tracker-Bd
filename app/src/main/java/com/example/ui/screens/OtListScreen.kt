@@ -41,6 +41,7 @@ fun OtListScreen(
 ) {
     val isBn = lang == "bn"
     var recordToDelete by remember { mutableStateOf<Long?>(null) }
+    var showLockedInfoDialog by remember { mutableStateOf(false) }
 
     val currentCalendarYm = remember {
         java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date())
@@ -55,13 +56,15 @@ fun OtListScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("add_ot_fab")
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add OT")
+            if (isRunningMonth) {
+                FloatingActionButton(
+                    onClick = onAddClick,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.testTag("add_ot_fab")
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add OT")
+                }
             }
         }
     ) { innerPadding ->
@@ -97,6 +100,34 @@ fun OtListScreen(
                             )
                             IconButton(onClick = onNextMonth) {
                                 Icon(Icons.Default.ChevronRight, contentDescription = "Next Month")
+                            }
+                        }
+
+                        if (!isRunningMonth) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (isBn) "বিগত মাসের ওটি খাতা সংরক্ষিত ও অপরিবর্তনীয় (লকড)" else "Past month records are preserved and locked",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
                             }
                         }
 
@@ -177,7 +208,13 @@ fun OtListScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onEditClick(record) }
+                            .clickable {
+                                if (isRunningMonth) {
+                                    onEditClick(record)
+                                } else {
+                                    showLockedInfoDialog = true
+                                }
+                            }
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(
@@ -330,28 +367,55 @@ fun OtListScreen(
                                 }
 
                                 // Actions: Edit & Delete
-                                Row {
-                                    IconButton(
-                                        onClick = { onEditClick(record) },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Edit,
-                                            contentDescription = "Edit",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
+                                if (isRunningMonth) {
+                                    Row {
+                                        IconButton(
+                                            onClick = { onEditClick(record) },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Edit,
+                                                contentDescription = "Edit",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { recordToDelete = record.id },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Delete",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
-                                    IconButton(
-                                        onClick = { recordToDelete = record.id },
-                                        modifier = Modifier.size(36.dp)
+                                } else {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.clickable { showLockedInfoDialog = true }
                                     ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = "Delete",
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(18.dp)
-                                        )
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Lock,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(
+                                                text = if (isBn) "লকড" else "Locked",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -382,6 +446,26 @@ fun OtListScreen(
             dismissButton = {
                 TextButton(onClick = { recordToDelete = null }) {
                     Text(if (isBn) "বাতিল" else "Cancel")
+                }
+            }
+        )
+    }
+
+    // Month Locked Info Dialog
+    if (showLockedInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showLockedInfoDialog = false },
+            icon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text(if (isBn) "মাসিক হিসাব লকড" else "Month Record Locked") },
+            text = {
+                Text(
+                    if (isBn) "মাস সমাপ্ত হওয়ায় এই মাসের ওটি ও বেতনের চূড়ান্ত স্ন্যাপশট সংরক্ষিত ও লকড করা হয়েছে। পূর্ববর্তী মাসের ডেটার সঠিকতা রক্ষার্থে এটি আর পরিবর্তন বা মোছা যাবে না।"
+                    else "Since the month has ended, this month's OT and salary snapshot is locked. To preserve historical records, it cannot be modified or deleted."
+                )
+            },
+            confirmButton = {
+                Button(onClick = { showLockedInfoDialog = false }) {
+                    Text(if (isBn) "ঠিক আছে" else "OK")
                 }
             }
         )

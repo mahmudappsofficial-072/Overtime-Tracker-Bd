@@ -50,6 +50,9 @@ interface OvertimeDao {
     @Query("SELECT SUM(otHours) FROM overtime_records WHERE yearMonth = :yearMonth AND id IN (SELECT MAX(id) FROM overtime_records GROUP BY date)")
     fun getTotalOtHoursByMonth(yearMonth: String): Flow<Double?>
 
+    @Query("SELECT DISTINCT yearMonth FROM overtime_records ORDER BY yearMonth ASC")
+    suspend fun getAllYearMonths(): List<String>
+
     @Query("DELETE FROM overtime_records")
     suspend fun deleteAllRecords()
 }

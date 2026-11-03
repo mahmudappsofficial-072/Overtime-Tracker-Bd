@@ -6,6 +6,7 @@ import com.example.data.model.OvertimeRecord
 import com.example.data.model.PieceRateRecord
 import com.example.data.model.TrashItem
 import com.example.data.model.UserProfile
+import com.example.util.LaborLawCalculator
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -76,6 +77,8 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                         userProfileDao.insertOrUpdateProfile(current.copy(medicalAllowance = 750.0))
                     }
                 }
+                val currentCalendarYm = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date())
+                autoFinalizePastMonthSnapshots(currentCalendarYm)
             } catch (_: Exception) {}
         }
     }
@@ -106,6 +109,76 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
         monthlySalaryDao.insertOrUpdate(settings)
         syncScope.launch {
             autoSyncMonthlySalaryToCloud(settings)
+        }
+    }
+
+    suspend fun setMonthLockStatus(yearMonth: String, isLocked: Boolean) {
+        val now = if (isLocked) System.currentTimeMillis() else 0L
+        monthlySalaryDao.updateLockStatus(yearMonth, isLocked, now)
+        val updated = monthlySalaryDao.getSettingsForMonthOnce(yearMonth)
+        if (updated != null) {
+            syncScope.launch {
+                autoSyncMonthlySalaryToCloud(updated)
+            }
+        }
+    }
+
+    suspend fun autoFinalizePastMonthSnapshots(currentCalendarYm: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val profile = getProfileOnce()
+                val otMonths = overtimeDao.getAllYearMonths()
+                val pieceMonths = pieceRateDao.getAllYearMonths()
+                val allMonths = (otMonths + pieceMonths).filter { it < currentCalendarYm }.distinct()
+
+                for (ym in allMonths) {
+                    val existing = monthlySalaryDao.getSettingsForMonthOnce(ym)
+                    if (existing == null) {
+                        val otRate = LaborLawCalculator.getHourlyOtRate(profile)
+                        val allowances = if (profile.isCustomSalary) {
+                            0.0
+                        } else {
+                            val auto = LaborLawCalculator.calculateAutoAllowances(profile.basicSalary)
+                            auto.houseRent + auto.medicalAllowance + auto.conveyanceAllowance + auto.foodAllowance
+                        }
+                        val gross = if (profile.basicSalary > 0.0) profile.basicSalary + allowances else 0.0
+                        val autoResult = if (!profile.isCustomSalary && profile.basicSalary > 0.0) {
+                            LaborLawCalculator.calculateAutoAllowances(profile.basicSalary)
+                        } else null
+
+                        val snapshot = com.example.data.model.MonthlySalarySettings(
+                            yearMonth = ym,
+                            basicSalary = profile.basicSalary,
+                            houseRent = if (profile.isCustomSalary) 0.0 else (autoResult?.houseRent ?: profile.houseRent),
+                            medicalAllowance = if (profile.isCustomSalary) 0.0 else 750.0,
+                            conveyanceAllowance = if (profile.isCustomSalary) 0.0 else (autoResult?.conveyanceAllowance ?: profile.conveyanceAllowance),
+                            foodAllowance = if (profile.isCustomSalary) 0.0 else (autoResult?.foodAllowance ?: profile.foodAllowance),
+                            grossSalary = gross,
+                            hourlyOtRate = otRate,
+                            customOtRate = profile.customOtRate,
+                            monthlyOtTargetHours = profile.monthlyOtTargetHours,
+                            attendanceBonus = profile.attendanceBonus,
+                            maxAbsentForBonus = profile.maxAbsentForBonus,
+                            maxLeaveForBonus = profile.maxLeaveForBonus,
+                            nightBillRate = profile.nightBillRate,
+                            tiffinBillRate = profile.tiffinBillRate,
+                            isCustomSalary = profile.isCustomSalary,
+                            userName = profile.userName,
+                            companyName = profile.companyName,
+                            designation = profile.designation,
+                            workerId = profile.workerId,
+                            grade = profile.grade,
+                            isLocked = true,
+                            lockedAt = System.currentTimeMillis()
+                        )
+                        saveMonthlySalarySettings(snapshot)
+                    } else if (!existing.isLocked) {
+                        setMonthLockStatus(ym, true)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("OvertimeRepository", "autoFinalizePastMonthSnapshots failed: ${e.message}")
+            }
         }
     }
 
@@ -981,6 +1054,10 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             "designation" to settings.designation,
             "workerId" to settings.workerId,
             "grade" to settings.grade,
+            "customOtRate" to settings.customOtRate,
+            "monthlyOtTargetHours" to settings.monthlyOtTargetHours,
+            "isLocked" to settings.isLocked,
+            "lockedAt" to settings.lockedAt,
             "updatedAt" to settings.updatedAt
         )
     }
@@ -1010,6 +1087,10 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             designation = (map["designation"] as? String)?.trim() ?: "",
             workerId = (map["workerId"] as? String)?.trim() ?: "",
             grade = (map["grade"] as? String)?.trim() ?: "",
+            customOtRate = getDoubleFromField(map["customOtRate"]),
+            monthlyOtTargetHours = getDoubleFromField(map["monthlyOtTargetHours"]),
+            isLocked = getBooleanFromField(map["isLocked"]),
+            lockedAt = (map["lockedAt"] as? Number)?.toLong() ?: 0L,
             updatedAt = (map["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
         )
     }

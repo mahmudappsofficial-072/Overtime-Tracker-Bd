@@ -21,6 +21,9 @@ interface MonthlySalaryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(settings: MonthlySalarySettings)
 
+    @Query("UPDATE monthly_salary_settings SET isLocked = :isLocked, lockedAt = :lockedAt WHERE yearMonth = :yearMonth")
+    suspend fun updateLockStatus(yearMonth: String, isLocked: Boolean, lockedAt: Long)
+
     @Query("DELETE FROM monthly_salary_settings")
     suspend fun deleteAll()
 }

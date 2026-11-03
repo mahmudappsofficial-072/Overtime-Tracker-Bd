@@ -255,9 +255,11 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             totalOtAmount + nightBillTotal + tiffinBillTotal + totalPieceAmount + attendanceBonus -
             advanceDeduction - aponBazarDeduction
 
-        val targetHours = profile.monthlyOtTargetHours
+        val targetHours = if (isRunningMonth) profile.monthlyOtTargetHours else (if (monthSnapshot != null && monthSnapshot.monthlyOtTargetHours > 0.0) monthSnapshot.monthlyOtTargetHours else profile.monthlyOtTargetHours)
         val progress = if (targetHours > 0) (totalOtHours / targetHours).coerceIn(0.0, 1.0).toFloat() else 0f
         val remainingTarget = (targetHours - totalOtHours).coerceAtLeast(0.0)
+        val isLocked = if (!isRunningMonth) (monthSnapshot?.isLocked ?: true) else false
+        val effCustomOtRate = if (isRunningMonth) profile.customOtRate else (monthSnapshot?.customOtRate ?: profile.customOtRate)
 
         MonthlySummaryState(
             hourlyOtRate = otRate,
@@ -300,7 +302,10 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             houseRent = effHouseRent,
             medicalAllowance = effMedical,
             conveyanceAllowance = effConveyance,
-            foodAllowance = effFood
+            foodAllowance = effFood,
+            isCustomSalary = isCustom,
+            customOtRate = effCustomOtRate,
+            isLocked = isLocked
         )
     }.stateIn(
         scope = viewModelScope,
@@ -407,7 +412,11 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
                 companyName = updated.companyName,
                 designation = updated.designation,
                 workerId = updated.workerId,
-                grade = updated.grade
+                grade = updated.grade,
+                customOtRate = updated.customOtRate,
+                monthlyOtTargetHours = updated.monthlyOtTargetHours,
+                isLocked = ym < currentCalendarYm,
+                lockedAt = if (ym < currentCalendarYm) System.currentTimeMillis() else 0L
             )
             repository.saveMonthlySalarySettings(snapshot)
             // Synchronize running month records with the new rate and amount in Room and Firestore
@@ -415,6 +424,12 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
             if (ym > currentCalendarYm) {
                 repository.updateRunningMonthOvertimeRates(ym, otRate)
             }
+        }
+    }
+
+    fun setMonthLockStatus(yearMonth: String, isLocked: Boolean) {
+        viewModelScope.launch {
+            repository.setMonthLockStatus(yearMonth, isLocked)
         }
     }
 
@@ -473,7 +488,11 @@ class OvertimeViewModel(application: Application) : AndroidViewModel(application
                     companyName = profile.companyName,
                     designation = profile.designation,
                     workerId = profile.workerId,
-                    grade = profile.grade
+                    grade = profile.grade,
+                    customOtRate = profile.customOtRate,
+                    monthlyOtTargetHours = profile.monthlyOtTargetHours,
+                    isLocked = !isRunningMonth,
+                    lockedAt = if (!isRunningMonth) System.currentTimeMillis() else 0L
                 )
                 repository.saveMonthlySalarySettings(snapshot)
             } else if (existingMonthSettings != null && existingMonthSettings.userName.isBlank() && profile.userName.isNotBlank()) {
@@ -706,5 +725,8 @@ data class MonthlySummaryState(
     val houseRent: Double = 0.0,
     val medicalAllowance: Double = 0.0,
     val conveyanceAllowance: Double = 0.0,
-    val foodAllowance: Double = 0.0
+    val foodAllowance: Double = 0.0,
+    val isCustomSalary: Boolean = false,
+    val customOtRate: Double = 0.0,
+    val isLocked: Boolean = false
 )
