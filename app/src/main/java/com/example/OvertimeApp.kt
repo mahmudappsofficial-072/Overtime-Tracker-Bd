@@ -27,5 +27,10 @@ class OvertimeApp : Application() {
         } catch (e: Exception) {
             Log.w("OvertimeApp", "Firebase App Check initialization failed: ${e.message}")
         }
+        try {
+            com.google.android.gms.ads.MobileAds.initialize(this) {}
+        } catch (e: Exception) {
+            Log.w("OvertimeApp", "AdMob initialization failed: ${e.message}")
+        }
     }
 }
