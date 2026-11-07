@@ -112,8 +112,6 @@ fun ProfileScreen(
         mutableStateOf(if (profile.customOtRate <= 0.0) "" else profile.customOtRate.toInt().toString())
     }
 
-    var whatsappNumber by remember(profile) { mutableStateOf(profile.supportWhatsapp) }
-
     LaunchedEffect(profile) {
         if (profile.basicSalary == 0.0 && profile.userName.isBlank() && profile.companyName.isBlank() && profile.workerId.isBlank()) {
             userName = ""
@@ -133,7 +131,6 @@ fun ProfileScreen(
             nightBillRateText = "0"
             tiffinBillRateText = "0"
             customOtRateText = ""
-            whatsappNumber = ""
             isCustomSalary = false
         }
     }
@@ -860,8 +857,7 @@ fun ProfileScreen(
                         maxLeaveForBonus = maxLeaveForBonusText.toIntOrNull(),
                         nightBillRate = night,
                         tiffinBillRate = tiffin,
-                        customOtRate = customOt,
-                        supportWhatsapp = whatsappNumber.trim()
+                        customOtRate = customOt
                     )
                     onSaveProfile(updated)
                     Toast.makeText(context, if (isBn) "প্রোফাইল ও বেতন সেটিংস সংরক্ষিত হয়েছে!" else "Profile & salary settings saved!", Toast.LENGTH_SHORT).show()
@@ -1320,7 +1316,6 @@ fun ProfileScreen(
                         nightBillRateText = "0"
                         tiffinBillRateText = "0"
                         customOtRateText = "0"
-                        whatsappNumber = ""
                         isCustomSalary = false
                         onDeleteAllData()
                     },

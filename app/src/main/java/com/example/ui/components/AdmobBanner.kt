@@ -21,30 +21,35 @@ import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
 
 /**
- * AdMob Banner Composable (Home_Banner).
- * Single stable AdView instance managed inside AndroidView to avoid duplicate requests,
- * with clean state observation and lifecycle cleanup.
+ * AdMob Persistent Banner Composable.
+ * Uses a single stable AdView instance to prevent duplicate ad requests or layout re-mounts.
+ * Securely separated from navigation components to prevent accidental clicks.
  */
 @Composable
 fun AdmobBanner(
     modifier: Modifier = Modifier,
-    adUnitId: String = "ca-app-pub-9027708775227838/5740981993" // Real Home Banner Ad Unit ID
+    adUnitId: String = "ca-app-pub-9027708775227838/5740981993"
 ) {
     var isAdLoaded by remember { mutableStateOf(false) }
 
-    if (isAdLoaded) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(if (isAdLoaded) 56.dp else 0.dp),
+        contentAlignment = Alignment.Center
+    ) {
         Card(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .testTag("admob_banner_card"),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 3.dp),
                 contentAlignment = Alignment.Center
             ) {
                 AndroidView(
@@ -69,30 +74,6 @@ fun AdmobBanner(
                         .height(50.dp)
                 )
             }
-        }
-    } else {
-        // Invisible container holding the single AdView while loading
-        Box(
-            modifier = Modifier.height(0.dp)
-        ) {
-            AndroidView(
-                factory = { context ->
-                    AdView(context).apply {
-                        setAdSize(AdSize.BANNER)
-                        this.adUnitId = adUnitId
-                        adListener = object : AdListener() {
-                            override fun onAdLoaded() {
-                                isAdLoaded = true
-                            }
-
-                            override fun onAdFailedToLoad(error: LoadAdError) {
-                                isAdLoaded = false
-                            }
-                        }
-                        loadAd(AdRequest.Builder().build())
-                    }
-                }
-            )
         }
     }
 }

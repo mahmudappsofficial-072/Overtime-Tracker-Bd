@@ -6,8 +6,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import com.example.ui.components.AdmobBanner
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -140,11 +143,13 @@ fun OvertimeApp(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            NavigationBar(
-                modifier = Modifier.testTag("bottom_navigation_bar"),
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = NavigationBarDefaults.Elevation
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                AdmobBanner(modifier = Modifier.fillMaxWidth())
+                NavigationBar(
+                    modifier = Modifier.testTag("bottom_navigation_bar"),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = NavigationBarDefaults.Elevation
+                ) {
                 // Tab 0: Home
                 NavigationBarItem(
                     selected = currentTab == 0,
@@ -222,6 +227,7 @@ fun OvertimeApp(
                 )
             }
         }
+    }
     ) { innerPadding ->
         Surface(
             modifier = Modifier

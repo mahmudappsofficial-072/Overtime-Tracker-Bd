@@ -27,7 +27,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.example.data.model.DeductionRecord
 import com.example.data.model.OvertimeRecord
 import com.example.data.model.UserProfile
-import com.example.ui.components.AdmobBanner
 import com.example.ui.theme.NightBlue
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.WarningOrange
@@ -457,13 +456,6 @@ fun HomeScreen(
                     }
                 }
             }
-        }
-
-        // Home_Banner: AdMob Banner Ad
-        item {
-            AdmobBanner(
-                modifier = Modifier.fillMaxWidth()
-            )
         }
 
         // 3 Action Buttons: আজকের ওটি, অগ্রিম কর্তন, আপন বাজার

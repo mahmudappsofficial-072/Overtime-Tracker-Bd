@@ -69,8 +69,7 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                             attendanceBonus = 0.0,
                             nightBillRate = 0.0,
                             tiffinBillRate = 0.0,
-                            monthlyOtTargetHours = 0.0,
-                            supportWhatsapp = ""
+                            monthlyOtTargetHours = 0.0
                         )
                         userProfileDao.insertOrUpdateProfile(cleaned)
                     } else if (current.medicalAllowance == 1250.0) {
@@ -331,7 +330,6 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                 customOtRate = 0.0,
                 monthlyOtTargetHours = 0.0,
                 language = current?.language ?: "bn",
-                supportWhatsapp = "",
                 hasAcceptedPrivacyPolicy = current?.hasAcceptedPrivacyPolicy ?: false,
                 privacyPolicyAcceptedAt = current?.privacyPolicyAcceptedAt ?: 0L,
                 lastCloudSyncTime = 0L,
@@ -447,7 +445,6 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                         "customOtRate" to 0.0,
                         "monthlyOtTargetHours" to 0.0,
                         "language" to "bn",
-                        "supportWhatsapp" to "",
                         "lastSyncTime" to 0L,
                         // CONSENT IS PERMANENTLY PRESERVED IN FIRESTORE PER USER REQUIREMENT:
                         "hasAcceptedPrivacyPolicy" to true,
@@ -728,7 +725,6 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                         val num = (data["maxLeaveForBonus"] as? Number)?.toInt()
                         if (num == null || num < 0) null else num
                     } else null
-                    val cloudWhatsapp = (data["supportWhatsapp"] as? String)?.trim() ?: ""
                     val cloudLang = (data["language"] as? String)?.trim() ?: "bn"
                     val cloudSyncTime = (data["lastSyncTime"] as? Number)?.toLong() ?: 0L
 
@@ -771,7 +767,6 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
                             customOtRate = if (cloudCustomOt > 0.0) cloudCustomOt else currentProfile.customOtRate,
                             monthlyOtTargetHours = if (cloudTargetHours > 0.0) cloudTargetHours else currentProfile.monthlyOtTargetHours,
                             language = if (cloudLang.isNotBlank()) cloudLang else currentProfile.language,
-                            supportWhatsapp = if (cloudWhatsapp.isNotBlank()) cloudWhatsapp else currentProfile.supportWhatsapp,
                             lastCloudSyncTime = if (cloudSyncTime > 0L) cloudSyncTime else now,
                             cloudSyncStatus = "স্বয়ংক্রিয় ব্যাকআপ সক্রিয় (Synced)"
                         )
@@ -948,7 +943,6 @@ class OvertimeRepository(private val database: AppDatabase, private val context:
             "customOtRate" to profile.customOtRate,
             "monthlyOtTargetHours" to profile.monthlyOtTargetHours,
             "language" to profile.language,
-            "supportWhatsapp" to profile.supportWhatsapp,
             "hasAcceptedPrivacyPolicy" to profile.hasAcceptedPrivacyPolicy,
             "privacyPolicyAcceptedAt" to profile.privacyPolicyAcceptedAt,
             "consentAudit" to hashMapOf<String, Any>(

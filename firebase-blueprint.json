@@ -20,7 +20,6 @@
         "customOtRate": { "type": "number" },
         "monthlyOtTargetHours": { "type": "number" },
         "language": { "type": "string" },
-        "supportWhatsapp": { "type": "string" },
         "lastSyncTime": { "type": "number" }
       }
     },

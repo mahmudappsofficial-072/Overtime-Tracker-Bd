@@ -26,7 +26,6 @@ data class UserProfile(
     val customOtRate: Double = 0.0,
     val monthlyOtTargetHours: Double = 0.0,
     val language: String = "bn",
-    val supportWhatsapp: String = "",
     val hasAcceptedPrivacyPolicy: Boolean = false,
     val privacyPolicyAcceptedAt: Long = 0L,
     val lastCloudSyncTime: Long = 0L,
