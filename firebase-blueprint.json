@@ -74,6 +74,31 @@
         "isCustomSalary": { "type": "boolean" },
         "updatedAt": { "type": "number" }
       }
+    },
+    "DeductionRecord": {
+      "path": "users/{userId}/deduction_records/{recordId}",
+      "fields": {
+        "id": { "type": "number" },
+        "type": { "type": "string" },
+        "date": { "type": "string" },
+        "yearMonth": { "type": "string" },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "number" }
+      }
+    },
+    "TrashRecord": {
+      "path": "users/{userId}/trash_records/{trashId}",
+      "fields": {
+        "id": { "type": "number" },
+        "itemType": { "type": "string" },
+        "originalId": { "type": "number" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "date": { "type": "string" },
+        "jsonData": { "type": "string" },
+        "deletedAt": { "type": "number" }
+      }
     }
   }
 }

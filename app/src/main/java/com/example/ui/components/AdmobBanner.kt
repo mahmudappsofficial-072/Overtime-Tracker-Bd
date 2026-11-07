@@ -71,7 +71,10 @@ fun AdmobBanner(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
+                        .height(50.dp),
+                    onRelease = { adView ->
+                        adView.destroy()
+                    }
                 )
             }
         }
